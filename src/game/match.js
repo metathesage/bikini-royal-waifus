@@ -2897,6 +2897,17 @@ function beginBus() {
     heightAt: (x, z) => heightAt(x, z),
 
     /**
+     * The live collision boxes, for map QA.
+     *
+     * `heightAt` deliberately ignores buildings, so it cannot answer "how tall is
+     * this map" - only the box list can, since the boxes are what actually stop a
+     * bullet and block a sight line. The island was reported as a maze of floors
+     * and sky buildings, and the difference between the terrain profile and the
+     * top of the tallest box is exactly that complaint made measurable.
+     */
+    worldBoxes: () => (world ? world.boxes : []),
+
+    /**
      * Re-point the viewmodel at whatever is equipped.
      *
      * `syncWeapon` is internal, but every measurement that swaps guns needs it:

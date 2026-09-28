@@ -583,7 +583,105 @@ if (bots && bots.bad && bots.bad.length) fail.push(`${bots.bad.length} bot(s) ha
 if (errors.length) fail.push(`${errors.length} page error(s) during the match`);
 if (failed.length) fail.push(`${failed.length} failed request(s) during the match`);
 
-if (errors.length) {
+  // Why can a player not see the other 42 fighters? Three possibilities, and they
+  // need completely different fixes: nobody was ever created, they were created
+  // but never made visible, or they are visible and simply somewhere else. Count
+  // the cast the way `debugCast` reports it, but summarise the answer instead of
+  // dumping 43 rows.
+  // How much verticality is there, and what is making it? The player reports the
+  // island as a maze of floors and sky buildings they can never see anyone from.
+  // Measure rather than guess: sample the terrain profile across the island and
+  // report how many of the world's collision boxes are actually tall enough to
+  // block a sight line. `heightAt` ignores buildings, so a big gap between the
+  // terrain profile and the tops of the boxes is exactly the "sky building"
+  // problem.
+  const shape = await page.evaluate(() => {
+    const m = window.__brMatch();
+    const samples = [];
+    let lo = Infinity;
+    let hi = -Infinity;
+    for (let i = 0; i < 40; i++) {
+      const a = (i / 40) * Math.PI * 2;
+      for (let r = 0; r <= 56; r += 7) {
+        const h = m.heightAt(Math.cos(a) * r, Math.sin(a) * r);
+        if (!Number.isFinite(h)) continue;
+        lo = Math.min(lo, h);
+        hi = Math.max(hi, h);
+        if (i % 10 === 0) samples.push(+h.toFixed(1));
+      }
+    }
+    // The collision boxes are the buildings. `heightAt` deliberately ignores them,
+    // so the gap between the terrain profile and the top of the tallest box is
+    // exactly the "sky building" the player is complaining about.
+    const boxes = (m.worldBoxes ? m.worldBoxes() : []) || [];
+    let bTop = -Infinity;
+    let bBase = Infinity;
+    let tall = 0;
+    for (const b of boxes) {
+      if (!b || !b.max || !b.min) continue;
+      bTop = Math.max(bTop, b.max.y);
+      bBase = Math.min(bBase, b.min.y);
+      if (b.max.y - b.min.y > 6) tall++;
+    }
+    return {
+      terrainMin: +lo.toFixed(2),
+      terrainMax: +hi.toFixed(2),
+      terrainRange: +(hi - lo).toFixed(2),
+      profile: samples.join(' '),
+      boxCount: boxes.length,
+      tallBoxes: tall,
+      boxBase: Number.isFinite(bBase) ? +bBase.toFixed(2) : null,
+      boxTop: Number.isFinite(bTop) ? +bTop.toFixed(2) : null,
+      // How far the tallest structure rises above the ground it stands on.
+      tallestAboveGround: Number.isFinite(bTop) && Number.isFinite(hi) ? +(bTop - hi).toFixed(2) : null,
+    };
+  });
+  console.log('\n--- map shape ---');
+  console.log(`terrain: ${shape.terrainMin}m .. ${shape.terrainMax}m (range ${shape.terrainRange}m)`);
+  console.log(`profile across the island: ${shape.profile}`);
+  console.log(`collision boxes: ${shape.boxCount} total, ${shape.tallBoxes} taller than 6m`);
+  console.log(`box vertical extent: ${shape.boxBase}m .. ${shape.boxTop}m (tallest rises ${shape.tallestAboveGround}m above the highest ground)`);
+
+  const cast = await page.evaluate(() => {
+    const rows = (window.__brCast ? window.__brCast() : []) || [];
+    const m = window.__brMatch();
+    const p = m.player;
+    const bots = m.bots();
+    const live = bots.filter((b) => b.alive && b.state !== 'bus');
+    const withMesh = rows.filter((r) => r.meshes > 0);
+    const visible = rows.filter((r) => r.visible);
+    const rigged = rows.filter((r) => r.bones > 0);
+    const loading = rows.filter((r) => r.loading);
+    // How far away is the nearest live opponent, and is it roughly at eye level?
+    let nearest = null;
+    for (const b of live) {
+      const d = Math.hypot(b.pos.x - p.pos.x, b.pos.y - p.pos.y, b.pos.z - p.pos.z);
+      if (!nearest || d < nearest.d) nearest = { d, name: b.name, state: b.state, y: b.pos.y };
+    }
+    return {
+      total: rows.length,
+      live: live.length,
+      withMesh: withMesh.length,
+      visible: visible.length,
+      rigged: rigged.length,
+      stillLoading: loading.length,
+      sample: rows.slice(0, 2),
+      nearestToPlayer: nearest ? { name: nearest.name, dist: +nearest.d.toFixed(1), state: nearest.state, dy: +(nearest.y - p.pos.y).toFixed(1) } : null,
+    };
+  });
+  console.log('\n--- other players ---');
+  console.log(`cast: ${cast.total} actors | ${cast.live} live | ${cast.withMesh} have meshes | ${cast.visible} visible | ${cast.rigged} rigged | ${cast.stillLoading} still loading`);
+  if (cast.nearestToPlayer) {
+    console.log(`nearest opponent: ${cast.nearestToPlayer.name} at ${cast.nearestToPlayer.dist}m (dy ${cast.nearestToPlayer.dy}m, state ${cast.nearestToPlayer.state})`);
+  } else {
+    console.log('nearest opponent: NONE - every rival is dead or still on the bus');
+  }
+  console.log(`sample actor: ${JSON.stringify(cast.sample[0] || null)}`);
+
+  await page.screenshot({ path: OUT }).catch((e) => console.error(`screenshot failed: ${e.message}`));
+  console.log(`\nscreenshot: ${OUT}`);
+
+  if (errors.length) {
   console.error(`\n${errors.length} page error(s):`);
   for (const e of [...new Set(errors)].slice(0, 12)) console.error(`  ${e}`);
 }
@@ -601,5 +699,3 @@ if (fail.length) {
 }
 console.log('\nisland probe ok');
 
-await page.screenshot({ path: OUT }).catch((e) => console.error(`screenshot failed: ${e.message}`));
-console.log(`\nscreenshot: ${OUT}`);
