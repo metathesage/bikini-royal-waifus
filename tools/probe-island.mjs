@@ -294,51 +294,57 @@ const loot = await page.evaluate(async () => {
     return { error: 'no ground gun sits above sea level', total: guns.length, heightlessGuns: noY };
   }
 
-  // Choose the marker FIRST, then find open ground beside IT. Doing it the other
-  // way round picks a patch of open terrain somewhere on the island and then
-  // reaches for whatever loot happens to be nearest - which is regularly on a
-  // street under a building, several metres below the player's feet, and
-  // unreachable no matter how the probe poses. A player looks at the gun in
-  // front of them, not the other way round.
-  let target = null;
-  let targetD = Infinity;
-  for (const g of dryGuns) {
-    const d = Math.hypot(g.x - landing.x, g.z - landing.z);
-    if (d < targetD) { targetD = d; target = g; }
-  }
+  // Sort the dry markers by how far they are from where the drop left us, then
+  // take the first one that has open, level ground within arm's reach. A single
+  // marker tucked under a building is normal on a dense city map and says
+  // nothing about whether the game is playable, so try a few rather than letting
+  // one bad roll fail the whole run. A player looks at the guns in front of them.
+  const byDistance = dryGuns
+    .map((g) => ({ g, d: Math.hypot(g.x - landing.x, g.z - landing.z) }))
+    .sort((a, b) => a.d - b.d);
 
-  // Find genuinely open ground BESIDE the chosen marker. "Open" means the
-  // terrain the sim settles on matches `heightAt` there, i.e. nothing is built
-  // overhead - that is the test that actually matters, because a gun on a street
-  // has a building above it and the player ends up on the roof instead of beside
-  // the marker. The origin is not open terrain either: it is the pre-drop lobby
-  // deck at y=48.7 (see `placeLobby`).
-  let settled = null;
-  outer:
-  for (let ring = 2; ring <= 14; ring += 2) {
-    for (let a = 0; a < 16; a++) {
-      const ang = (a / 16) * Math.PI * 2;
-      const x = target.x + Math.cos(ang) * ring;
-      const z = target.z + Math.sin(ang) * ring;
-      pl.pos.set(x, target.y + 0.5, z);
-      pl.vel.set(0, 0, 0);
-      for (let f = 0; f < 30; f++) { m.update(1 / 60, idle); pl.hp = 100; pl.alive = true; pl.vel.set(0, 0, 0); }
-      const terrain = m.heightAt(pl.pos.x, pl.pos.z);
-      if (pl.pos.y > -0.5 && Math.abs(pl.pos.y - terrain) < 1.5) {
-        settled = { x: pl.pos.x, y: pl.pos.y, z: pl.pos.z };
-        break outer;
+  // Find genuinely open ground BESIDE a marker, and CLOSE to it. "Open" means
+  // the terrain the sim settles on matches `heightAt` there, i.e. nothing is
+  // built overhead - that is the test that actually matters, because a gun on a
+  // street has a building above it and the player ends up on the roof instead of
+  // beside the marker. "Close" matters just as much: standing 6m away with a
+  // perfect line of sight still fails, because `focusedInteract` caps at 2.6m. A
+  // player walks up to the thing they are picking up.
+  const findOpen = (g) => {
+    for (let ring = 1.2; ring <= 2.4; ring += 0.4) {
+      for (let a = 0; a < 24; a++) {
+        const ang = (a / 24) * Math.PI * 2;
+        const x = g.x + Math.cos(ang) * ring;
+        const z = g.z + Math.sin(ang) * ring;
+        pl.pos.set(x, g.y + 0.6, z);
+        pl.vel.set(0, 0, 0);
+        for (let f = 0; f < 25; f++) { m.update(1 / 60, idle); pl.hp = 100; pl.alive = true; pl.vel.set(0, 0, 0); }
+        const terrain = m.heightAt(pl.pos.x, pl.pos.z);
+        // On the terrain (not a roof), above the tide, and level with the marker so
+        // the camera ends up close to it rather than high above or far below.
+        if (pl.pos.y > -0.5 && Math.abs(pl.pos.y - terrain) < 1.5 && Math.abs(pl.pos.y - g.y) < 1.5) {
+          return { x: pl.pos.x, y: pl.pos.y, z: pl.pos.z };
+        }
       }
     }
+    return null;
+  };
+
+  let target = null;
+  let settled = null;
+  let coveredTried = 0;
+  for (const cand of byDistance.slice(0, 8)) {
+    settled = findOpen(cand.g);
+    if (settled) { target = cand.g; break; }
+    coveredTried++;
   }
-  if (!settled) {
-    // Nothing open near this marker. Stand on the marker's own ground and let the
-    // numbers below report what the camera actually ended up seeing, rather
-    // than silently measuring a pose the sim never accepted.
-    pl.pos.set(target.x, target.y, target.z + 1.2);
-    pl.vel.set(0, 0, 0);
-    for (let f = 0; f < 60; f++) { m.update(1 / 60, idle); pl.hp = 100; pl.alive = true; pl.vel.set(0, 0, 0); }
-    settled = { x: pl.pos.x, y: pl.pos.y, z: pl.pos.z };
-    console.log('  (no open ground beside this marker - standing on the marker itself)');
+  if (!target) {
+    // Every nearby marker is under a building. That is a real observation about
+    // the map, so report it rather than measuring a pose the sim never accepted.
+    return {
+      error: `none of the ${coveredTried} nearest ground guns has open ground within 2.4m - all are under buildings`,
+      heightlessGuns: noY,
+    };
   }
 
   // Approach `target` from a 1.2m standoff, on the target's own ground height.
@@ -351,14 +357,14 @@ const loot = await page.evaluate(async () => {
   // every assertion after this point would be measuring the corpse. Top the
   // health up around the interaction - this step is about whether loot can be
   // taken, not whether the probe can survive a firefight.
-  // Approach the marker from whichever side the open ground was found on, at a
-  // 1.2m standoff. Re-assert the stance after every frame: `movePlayer` runs
-  // gravity and collision every frame, so a single placement does not stick.
+  // Stand on the verified-open spot itself and look across at the marker. The
+  // open-ground search starts at a 2m ring, so the settled position is already
+  // inside `focusedInteract`'s 2.6m gate - and critically it is a position the
+  // sim has already agreed is ground, not a building roof. Re-asserting it every
+  // frame keeps it there: `movePlayer` runs gravity and collision each frame and
+  // will otherwise slide the body onto whatever is overhead.
   const dx = target.x - settled.x;
   const dz = target.z - settled.z;
-  const len = Math.hypot(dx, dz) || 1;
-  const standX = target.x - (dx / len) * 1.2;
-  const standZ = target.z - (dz / len) * 1.2;
 
   // Standing still in the open for a second is how you die in a battle royale,
   // and 40-odd live bots will happily shoot the probe while it fumbles with a
@@ -369,15 +375,19 @@ const loot = await page.evaluate(async () => {
   const heal = () => { pl.hp = 100; pl.alive = true; };
   const stand = () => {
     heal();
-    pl.pos.set(standX, target.y, standZ);
+    pl.pos.set(settled.x, settled.y, settled.z);
     pl.vel.set(0, 0, 0);
-    // Face the marker: it is along the line we just walked in on.
+    // Face the marker: it lies along the line the search walked in on.
     pl.yaw = Math.atan2(-dx, -dz);
     // Look down at the marker. The eye is 1.58m up and the marker 0.4m up, so
-    // that is 1.18m of drop over 1.2m of ground - about 45 degrees. Positive
-    // `player.pitch` tilts the camera UP (it is added straight into
-    // `pitchPivot.rotation.x`), so looking down needs a negative value.
-    pl.pitch = -Math.atan2(1.18, 1.2);
+    // that is 1.18m of drop over however far away we ended up standing - about
+    // 30 degrees at a 2m standoff. Positive `player.pitch` tilts the camera UP
+    // (it is added straight into `pitchPivot.rotation.x`), so looking down needs
+    // a negative value. Getting the sign backwards points the camera at the sky
+    // and the dot product comes back near -1, which reads exactly like "the game
+    // ignores my input".
+    const horiz = Math.hypot(dx, dz) || 1.2;
+    pl.pitch = -Math.atan2(1.18, horiz);
   };
   stand();
   for (let f = 0; f < 30; f++) { m.update(1 / 60, idle); stand(); }
