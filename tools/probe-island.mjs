@@ -612,17 +612,22 @@ if (failed.length) fail.push(`${failed.length} failed request(s) during the matc
     }
     // The collision boxes are the buildings. `heightAt` deliberately ignores them,
     // so the gap between the terrain profile and the top of the tallest box is
-    // exactly the "sky building" the player is complaining about.
+    // exactly the "sky building" the player is complaining about. They are plain
+    // objects from `makeBox` with minX/maxX/minY/maxY fields - not THREE.Box3, so
+    // there is no `.min.y` to read and a wrong guess here silently reports zero.
     const boxes = (m.worldBoxes ? m.worldBoxes() : []) || [];
     let bTop = -Infinity;
-    let bBase = Infinity;
     let tall = 0;
+    const heights = [];
     for (const b of boxes) {
-      if (!b || !b.max || !b.min) continue;
-      bTop = Math.max(bTop, b.max.y);
-      bBase = Math.min(bBase, b.min.y);
-      if (b.max.y - b.min.y > 6) tall++;
+      if (!b) continue;
+      if (!Number.isFinite(b.maxY) || !Number.isFinite(b.minY)) continue;
+      bTop = Math.max(bTop, b.maxY);
+      const h = b.maxY - b.minY;
+      heights.push(h);
+      if (h > 6) tall++;
     }
+    heights.sort((a, b) => b - a);
     return {
       terrainMin: +lo.toFixed(2),
       terrainMax: +hi.toFixed(2),
@@ -630,9 +635,9 @@ if (failed.length) fail.push(`${failed.length} failed request(s) during the matc
       profile: samples.join(' '),
       boxCount: boxes.length,
       tallBoxes: tall,
-      boxBase: Number.isFinite(bBase) ? +bBase.toFixed(2) : null,
       boxTop: Number.isFinite(bTop) ? +bTop.toFixed(2) : null,
-      // How far the tallest structure rises above the ground it stands on.
+      tallestFive: heights.slice(0, 5).map((v) => +v.toFixed(1)).join(', '),
+      // How far the tallest structure rises above the highest ground.
       tallestAboveGround: Number.isFinite(bTop) && Number.isFinite(hi) ? +(bTop - hi).toFixed(2) : null,
     };
   });
@@ -640,7 +645,9 @@ if (failed.length) fail.push(`${failed.length} failed request(s) during the matc
   console.log(`terrain: ${shape.terrainMin}m .. ${shape.terrainMax}m (range ${shape.terrainRange}m)`);
   console.log(`profile across the island: ${shape.profile}`);
   console.log(`collision boxes: ${shape.boxCount} total, ${shape.tallBoxes} taller than 6m`);
-  console.log(`box vertical extent: ${shape.boxBase}m .. ${shape.boxTop}m (tallest rises ${shape.tallestAboveGround}m above the highest ground)`);
+  console.log(`box tops reach ${shape.boxTop}m; tallest five: ${shape.tallestFive}`);
+  console.log(`tallest structure rises ${shape.tallestAboveGround}m above the highest ground`);
+
 
   const cast = await page.evaluate(() => {
     const rows = (window.__brCast ? window.__brCast() : []) || [];

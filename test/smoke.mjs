@@ -78,7 +78,7 @@ setAssetManifest(JSON.parse(readFileSync(
     // A 13 MB model with no textures is a shape dump, not a city. It will render
     // as flat untextured silhouettes no matter how well it is placed.
     if (!(json.materials || []).length) throw new Error('city model has no materials');
-    if (!(json.images || []).length) throw new Error('city model has no textures Ã¢â‚¬â€ it will render untextured');
+    if (!(json.images || []).length) throw new Error('city model has no textures ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â it will render untextured');
     // Nine units of height for a 55-unit footprint reads as a car park.
     if (size[1] / Math.max(size[0], size[2]) < 0.12) {
       throw new Error(`city is too flat to read as vertical: ${size.join(' x ')}`);
@@ -92,7 +92,7 @@ setAssetManifest(JSON.parse(readFileSync(
 
 /* --- The island must face the sky ------------------------------- */
 /* An inverted terrain winding produces no error, no warning and no missing
-   geometry Ã¢â‚¬â€ it just lights the whole island from underneath, so the grass,
+   geometry ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â it just lights the whole island from underneath, so the grass,
    the beach and the crater all render as one flat dark mass. The only way to
    notice is to look at the normals, so look at the normals. */
 {
@@ -109,7 +109,7 @@ setAssetManifest(JSON.parse(readFileSync(
     if (sum > 0) up++;
     else down++;
   });
-  if (up === 0) throw new Error('every coloured surface has downward normals Ã¢â‚¬â€ the terrain is inside-out');
+  if (up === 0) throw new Error('every coloured surface has downward normals ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the terrain is inside-out');
   if (down > 0) throw new Error(`${down} coloured surface(s) are inside-out`);
 
   // And the island must actually have relief: a flat plane passes the normal
@@ -124,18 +124,36 @@ setAssetManifest(JSON.parse(readFileSync(
   if (spread < 1.5) throw new Error(`island is essentially flat (relief ${spread.toFixed(2)} units)`);
 
   // The city must be tall enough to be a skyline, and short enough to fight in.
+  // The city must be real cover you can fight around AND see over.
+  //
+  // This used to assert the opposite: it required the block to top out above 12
+  // units so downtown would "read as a skyline". At CITY_LIFT 2.6 that produced
+  // 52 collision boxes over 6m tall, which turned downtown into a solid wall that
+  // broke every sight line - the player reported never seeing another fighter
+  // while 43 actors stood around them, the nearest 10m away at eye level.
+  //
+  // So the assertion is about playability rather than silhouette: low enough that
+  // a standing player can see and shoot over the rooftops, tall enough to still be
+  // cover worth breaking a sight line for.
   const cityScaleY = (CITY_R * 2 - 16) / 54.8 * CITY_LIFT;
   const cityTop = PLAZA_Y + 9.4 * cityScaleY;
-  console.log(`city skyline tops out at y=${cityTop.toFixed(1)}, island relief ${spread.toFixed(1)}`);
-  if (cityTop < 12) throw new Error(`city only reaches ${cityTop.toFixed(1)} units Ã¢â‚¬â€ reads as low-rise`);
-  if (cityTop > 60) throw new Error(`city reaches ${cityTop.toFixed(1)} units Ã¢â‚¬â€ absurd for a ${ISLAND_R}-unit island`);
+  const EYE = 1.58;
+  console.log(`city tops out at y=${cityTop.toFixed(1)} (plaza ${PLAZA_Y}), island relief ${spread.toFixed(1)}`);
+  // A player standing on the plaza must be able to see over the block from a
+  // standing eye height, otherwise downtown is a wall again. "Over" means the
+  // rooftops sit below eye level plus headroom for the horizon to read.
+  if (cityTop > PLAZA_Y + EYE + 6) {
+    throw new Error(`city reaches ${cityTop.toFixed(1)}, well over eye height above the ${PLAZA_Y} plaza - it blocks sight lines again`);
+  }
+  if (cityTop < PLAZA_Y + 3) throw new Error(`city only reaches ${cityTop.toFixed(1)} units - too low to be cover`);
+  if (cityTop > 60) throw new Error(`city reaches ${cityTop.toFixed(1)} units - absurd for a ${ISLAND_R}-unit island`);
 }
 
 
 /* --- Effects must never put NaN in the scene graph ------------------ */
 /* A particle with a NaN transform rasterises as a large black rectangle
    hanging in the sky. It reads as a broken map, not a broken effect, and it
-   leaves no trace in any log â€” so assert the scene stays finite after the FX
+   leaves no trace in any log ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â so assert the scene stays finite after the FX
    layer is deliberately fed garbage. */
 {
   const { createFx } = await import('../src/vfx/fx.js');
@@ -164,7 +182,7 @@ setAssetManifest(JSON.parse(readFileSync(
     o.updateMatrixWorld(true);
     for (const v of o.matrixWorld.elements) if (!Number.isFinite(v)) offenders++;
   });
-  if (offenders) throw new Error(`${offenders} fx transform(s) went non-finite â€” expect black rectangles in the sky`);
+  if (offenders) throw new Error(`${offenders} fx transform(s) went non-finite ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â expect black rectangles in the sky`);
 }
 
 /* --- Every bot should get her own rigged body ------------------------- */
@@ -185,7 +203,7 @@ setAssetManifest(JSON.parse(readFileSync(
 
   // The model has to survive the trip into an avatar. `createWaifu` chooses
   // between an import and the procedural body, and a detail-level guard once
-  // meant every bot silently got the fallback Ã¢â‚¬â€ the models were on disk, in the
+  // meant every bot silently got the fallback ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the models were on disk, in the
   // manifest, and never once rendered.
   const { createWaifu } = await import('../src/avatar/waifu.js');
   for (const look of rigged.slice(0, 3).map((b) => b.look)) {
@@ -201,7 +219,7 @@ if (Math.abs(heightAt(0, 0) - heightAt(20, 20)) > 0.8) throw new Error('the city
 if (heightAt(ISLAND_R + 10, 0) > -4) throw new Error('terrain does not fall away past the island edge');
 
 // buildStep is driven from requestAnimationFrame in the browser, so yield
-// between calls here too Ã¢â‚¬â€ the world streams its kit assets asynchronously.
+// between calls here too ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the world streams its kit assets asynchronously.
 const yieldTick = () => new Promise((r) => setTimeout(r, 0));
 let p = 0;
 // three only warns about an undefined material `color`, which is easy to miss
@@ -246,10 +264,10 @@ let snap = null;
   const st = match.debugState();
   for (const [k, v] of Object.entries(st)) {
     if (typeof v === 'number' && !Number.isFinite(v)) {
-      throw new Error(`match.debugState().${k} is ${v} â€” the player position went non-finite`);
+      throw new Error(`match.debugState().${k} is ${v} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the player position went non-finite`);
     }
   }
-  if (st.outside) throw new Error('the player starts outside the play zone â€” the whole screen goes storm-purple');
+  if (st.outside) throw new Error('the player starts outside the play zone ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the whole screen goes storm-purple');
   // The storm must still be readable, not a blackout.
   if (st.fog.far < 60) throw new Error(`out-of-bounds fog far=${st.fog.far} blinds the player`);
   console.log(`player at (${st.px}, ${st.py}, ${st.pz}), zone r=${st.zone.r}, storm fog far=${st.fog.far}`);
@@ -506,7 +524,7 @@ async function sightLineChecks() {
  * target was nailed to the same spot. The three properties below are the ones
  * that turn it into something worth re-entering, and each of them is the kind
  * of thing that silently disappears in a refactor without failing anything
- * else — the damage numbers stay correct while the game around them rots.
+ * else Ã¢â‚¬â€ the damage numbers stay correct while the game around them rots.
  */
 async function drillChecks(range, idle) {
   // 1. Scoring. A hit must be worth points, and a streak must be buildable.
@@ -586,7 +604,7 @@ function rendererCheck() {
   setTerrain(null);
 
   // The match has already been simulated to completion by the time we get
-  // here, so put it back into a live play phase first — otherwise update() is
+  // here, so put it back into a live play phase first Ã¢â‚¬â€ otherwise update() is
   // a no-op and this test passes without testing anything. reset() puts us
   // back in the lobby, so the lobby timer has to elapse before the bus exists.
   match.reset();
@@ -663,7 +681,7 @@ function rendererCheck() {
 
 /* --- A candidate's decree, and her weakness, in a live match ---------- */
 /* ROYAL DECREE: UNDERTOW is suppressed inside a storm wall, and a rule about
-   storms can only be tested where a storm exists — the range has none on
+   storms can only be tested where a storm exists Ã¢â‚¬â€ the range has none on
    purpose. So this drives the match into a closing ring and checks both halves:
    refused out in the wall, castable in the calm centre, with the drag landing on
    the victim it caught. Candidate A's sheet is what decides all of it. */
@@ -696,7 +714,7 @@ function rendererCheck() {
   if (!closing) throw new Error('the storm never started closing, so the weakness cannot be checked');
 
   // Out in the wall: the sigil cannot hold, and a refused cast must not burn
-  // the cooldown — otherwise her weakness would double as a self-punish.
+  // the cooldown Ã¢â‚¬â€ otherwise her weakness would double as a self-punish.
   const zone = match.debugState().zone;
   match.player.abilityCd = 0;
   match.player.pos.x = zone.x + zone.r + 8;

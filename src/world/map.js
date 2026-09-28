@@ -175,6 +175,16 @@ function makeLit(scene) {
       if ('envMapIntensity' in m && !(m.envMapIntensity > 0)) m.envMapIntensity = 0.7;
       m.needsUpdate = true;
     }
+    // Flatten to cel shading once the colour has been rescued. Every imported
+    // asset arrives as Phong or Standard, both of which have a specular lobe;
+    // that highlight is what makes the island read as a shiny 3D render rather
+    // than a cartoon, and it cannot be removed by dialling down metalness because
+    // a toon material has no such term in the first place. Rebuilding the
+    // material after the colour fix above means it inherits the corrected base
+    // colour rather than the black one the fix exists to repair.
+    o.material = Array.isArray(o.material)
+      ? o.material.map((m) => toonify(m, { keepMap: true }))
+      : toonify(o.material, { keepMap: true });
   });
   return scene;
 }
@@ -309,16 +319,18 @@ function buildCity(kit, group, boxes, anchors, rng) {
       o.castShadow = true;
       o.receiveShadow = true;
       if (o.isSkinnedMesh) o.visible = false; // a stray character, not architecture
-      // Architecture has to be legible. A near-perfect metal with nothing to
-      // reflect is simply black, and this asset is authored almost entirely that
-      // way, so clamp it to something that catches the sun.
-      for (const m of (Array.isArray(o.material) ? o.material : [o.material])) {
-        if (!m) continue;
-        if ('metalness' in m) m.metalness = Math.min(m.metalness, 0.15);
-        if ('roughness' in m && m.roughness < 0.5) m.roughness = 0.7;
+      // Rebuild every surface as flat cel-shaded colour. This asset ships
+      // `MeshStandardMaterial`, and a standard material's specular lobe is what
+      // makes the block read as a shiny 3D render; clamping metalness and
+      // roughness down only ever got part of the way there, because a toon
+      // material has no such terms to clamp. Swapping the material type is the
+      // actual fix.
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      const rebuilt = mats.map((m) => {
+        if (!m) return m;
         // The asset is full of single-sided floor and roof planes whose normals
         // face down. Viewed from above they are unlit and rasterise as big flat
-        // black rectangles scattered through the skyline — which is exactly what
+        // black rectangles scattered through the block - which is exactly what
         // they looked like. DoubleSide flips the normal for back faces, so they
         // light correctly from whichever side you approach, and it also means
         // you can never see through a rooftop while mantling.
@@ -343,7 +355,9 @@ function buildCity(kit, group, boxes, anchors, rng) {
           if (lum < 0.35) m.color.lerp(NEUTRAL_FLOOR, 0.5);
         }
         m.needsUpdate = true;
-      }
+        return toonify(m);
+      });
+      o.material = Array.isArray(o.material) ? rebuilt : rebuilt[0];
       o.geometry.computeBoundingBox();
       const b = o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld);
       const s = b.getSize(new THREE.Vector3());
@@ -360,9 +374,13 @@ function buildCity(kit, group, boxes, anchors, rng) {
       }
     });
 
-    // Loot spread over the slabs, weighted toward the higher ones so the
-    // vertical routes carry the good loot.
+    // Loot spread over the slabs, so the rooftops are worth the climb. Capped to
+    // what a player can actually reach: with the city no longer vertically
+    // stretched, the tallest slab is a second-storey roof a mantle gets you onto.
+    // Anything above that would be a gun parked somewhere no one can go, which
+    // reads as an empty map because the good loot is unreachable.
     for (const s of slabs) {
+      if (s.y > PLAZA_Y + MAX_LOOT_HEIGHT) continue;
       const roll = rng();
       if (roll < 0.22) anchors.chests.push({ x: s.x, y: s.y + 0.05, z: s.z, poi: 'downtown', onCity: true });
       else if (roll < 0.85) anchors.floors.push({ x: s.x, z: s.z, poi: 'downtown', onCity: true });
@@ -402,11 +420,32 @@ export const PLAZA_Y = 2.8;
  * Vertical exaggeration applied to the imported city.
  *
  * The asset is 9.4 units tall over a 55-unit footprint. Scaled to fit the block
- * that is a low-rise sprawl that reads as a car park, so we stretch it into
- * towers. Tuned so the tallest rooftops clear the drop ship comfortably and
- * every storey is still jumpable.
+ * that is a low-rise sprawl, and the old value of 2.6 stretched it into towers
+ * roughly 24m tall. That was meant to make downtown read as a skyline, but it
+ * made the island unplayable:
+ *
+ *   - 52 collision boxes ended up over 6m tall, so downtown was a solid wall that
+ *     broke every sight line. The player reported never seeing another fighter,
+ *     and the cast was there the whole time - 43 actors, nearest one 10m away at
+ *     eye level - simply hidden behind a building.
+ *   - The block tops reached 48m, which is the drop ship's altitude, so a drop
+ *     could put you on a roof with no line of sight to anything.
+ *
+ * 1.0 keeps the asset exactly as authored: a low-rise sprawl roughly 9m tall, so
+ * a two-storey block. That is still real cover to break a sight line and fight
+ * around, and you can see and shoot over it. Raise this if the block ever needs
+ * to feel like a skyline again, but check the sight lines first.
  */
-export const CITY_LIFT = 2.6;
+export const CITY_LIFT = 1.0;
+
+/**
+ * Highest a loot marker may sit above the plaza, in metres.
+ *
+ * A gun on a roof nobody can reach is worse than no gun: the map reads as empty
+ * because the good weapons are all somewhere the player can see and not take.
+ * Roughly one storey, so it matches the jump/mantle height.
+ */
+export const MAX_LOOT_HEIGHT = 5;
 
 /** Downtown is pulled toward the game's pink-white key on load. */
 const CITY_TINT = new THREE.Color('#ffe8f2');
@@ -556,6 +595,63 @@ function toon(color, emissive = null, intensity = 0) {
     gradientMap: gradient(),
     emissive: emissive || 0x000000,
     emissiveIntensity: intensity,
+  });
+}
+
+/**
+ * Make an imported material read as flat cel-shaded colour.
+ *
+ * The procedural geometry in this map is already `MeshToonMaterial`, so it has
+ * the banded gradient ramp and reads as painted. Everything that arrives from a
+ * GLB does not: those keep their `MeshStandardMaterial`, which is a full PBR
+ * shader with metalness, roughness and a specular lobe. Under a bright
+ * hemisphere light that specular highlight is what makes the city look like a
+ * shiny 3D render instead of a cartoon - and because metalness and roughness do
+ * not exist on a toon material, clamping them to "less shiny" only ever got
+ * halfway there.
+ *
+ * So this rebuilds the material as a toon one rather than dialling down its PBR
+ * parameters. Flat colour in, banded lighting out.
+ *
+ * The base colour is taken from whatever the original resolved to, so this
+ * preserves art direction rather than flattening everything to one grey. Callers
+ * that want a specific palette pass the replacement colour in.
+ *
+ * `keepMap` leaves the texture in place for surfaces whose detail comes from an
+ * image - without it, a brick or window texture is thrown away and the surface
+ * becomes a single flat colour.
+ */
+function toonify(m, { keepMap = false, fallback = '#e8dbe8' } = {}) {
+  if (!m) return m;
+  // Already flat-shaded. Rebuilding would drop the gradientMap the rest of the
+  // scene relies on, and it is already correct.
+  if (m.isMeshToonMaterial) return m;
+  let color = m.color;
+  if (!color || !Number.isFinite(color.r)) color = new THREE.Color(fallback);
+  const out = new THREE.MeshToonMaterial({
+    color: color.clone(),
+    gradientMap: gradient(),
+    // Toon has no specular term, so emissive is what keeps a surface from going
+    // fully black on its unlit side. A trace of the base colour reads as ambient
+    // bounce rather than as the surface glowing.
+    emissive: new THREE.Color(color).multiplyScalar(0.12),
+    side: m.side,
+    transparent: m.transparent,
+    opacity: m.opacity,
+  });
+  if (keepMap && m.map) out.map = m.map;
+  if (m.alphaMap) out.alphaMap = m.alphaMap;
+  if (m.alphaTest) out.alphaTest = m.alphaTest;
+  return out;
+}
+
+/** Swap in a toon material for every mesh under `root`, keeping each one's colour. */
+function toonifyTree(root, opts) {
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    o.material = Array.isArray(o.material)
+      ? o.material.map((m) => toonify(m, opts))
+      : toonify(o.material, opts);
   });
 }
 
