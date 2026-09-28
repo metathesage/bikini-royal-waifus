@@ -1,0 +1,1323 @@
+{
+  "url": "http://localhost:5173/",
+  "phase": "play",
+  "screenshot": "shot-play.png",
+  "shots": [
+    "shot-play-noui.png",
+    "shot-play-noshadow.png",
+    "shot-play-overview.png",
+    "shot-play-skyline.png",
+    "shot-play-street.png",
+    "shot-play-plaza.png"
+  ],
+  "shotDiag": {
+    "overview": [
+      {
+        "px": 2759,
+        "span": 250,
+        "size": [
+          250,
+          36,
+          250
+        ],
+        "dist": 58.7,
+        "type": "MeshBasicMaterial",
+        "color": "#c45bff",
+        "hasMap": false,
+        "at": [
+          -119,
+          -2,
+          -129
+        ]
+      },
+      {
+        "px": 2516,
+        "span": 253.75,
+        "size": [
+          253.75,
+          0,
+          253.75
+        ],
+        "dist": 65.4,
+        "type": "MeshBasicMaterial",
+        "color": "#ff4fd8",
+        "hasMap": false,
+        "at": [
+          -120.9,
+          3.2,
+          -130.9
+        ]
+      },
+      {
+        "px": 837,
+        "span": 104.51,
+        "size": [
+          104.25,
+          55.21,
+          104.51
+        ],
+        "dist": 80.9,
+        "type": "MeshToonMaterial",
+        "color": "#3dffa6",
+        "hasMap": false,
+        "at": [
+          -50.2,
+          -50.9,
+          -51.8
+        ]
+      },
+      {
+        "px": 412,
+        "span": 16,
+        "size": [
+          16,
+          0,
+          16
+        ],
+        "dist": 25.2,
+        "type": "MeshPhongMaterial",
+        "color": "#0041a3",
+        "hasMap": true,
+        "at": [
+          -8,
+          48,
+          16
+        ]
+      },
+      {
+        "px": 297,
+        "span": 19.36,
+        "size": [
+          19.36,
+          16.47,
+          0.82
+        ],
+        "dist": 42.3,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          2.6,
+          3.8,
+          20.5
+        ]
+      },
+      {
+        "px": 292,
+        "span": 23.29,
+        "size": [
+          10.44,
+          16.47,
+          23.29
+        ],
+        "dist": 51.6,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          -22.1,
+          3.8,
+          -2
+        ]
+      },
+      {
+        "px": 264,
+        "span": 16.47,
+        "size": [
+          2.82,
+          16.47,
+          0.82
+        ],
+        "dist": 40.5,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          -2.1,
+          3.8,
+          20.5
+        ]
+      },
+      {
+        "px": 257,
+        "span": 16.47,
+        "size": [
+          0,
+          16.47,
+          2.17
+        ],
+        "dist": 41.6,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          -2.1,
+          3.8,
+          18.3
+        ]
+      },
+      {
+        "px": 257,
+        "span": 16.47,
+        "size": [
+          4.18,
+          16.47,
+          2.99
+        ],
+        "dist": 41.4,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          -6.3,
+          3.8,
+          18.3
+        ]
+      },
+      {
+        "px": 256,
+        "span": 16.47,
+        "size": [
+          6.86,
+          16.47,
+          0.82
+        ],
+        "dist": 41.6,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          -13.2,
+          3.8,
+          20.5
+        ]
+      }
+    ],
+    "skyline": [
+      {
+        "px": 4001,
+        "span": 250,
+        "size": [
+          250,
+          36,
+          250
+        ],
+        "dist": 40.5,
+        "type": "MeshBasicMaterial",
+        "color": "#c45bff",
+        "hasMap": false,
+        "at": [
+          -119,
+          -2,
+          -129
+        ]
+      },
+      {
+        "px": 3510,
+        "span": 253.75,
+        "size": [
+          253.75,
+          0,
+          253.75
+        ],
+        "dist": 46.8,
+        "type": "MeshBasicMaterial",
+        "color": "#ff4fd8",
+        "hasMap": false,
+        "at": [
+          -120.9,
+          3.2,
+          -130.9
+        ]
+      },
+      {
+        "px": 1064,
+        "span": 104.51,
+        "size": [
+          104.25,
+          55.21,
+          104.51
+        ],
+        "dist": 63.6,
+        "type": "MeshToonMaterial",
+        "color": "#3dffa6",
+        "hasMap": false,
+        "at": [
+          -50.2,
+          -50.9,
+          -51.8
+        ]
+      },
+      {
+        "px": 547,
+        "span": 16,
+        "size": [
+          16,
+          0,
+          16
+        ],
+        "dist": 19,
+        "type": "MeshPhongMaterial",
+        "color": "#0041a3",
+        "hasMap": true,
+        "at": [
+          -8,
+          48,
+          16
+        ]
+      },
+      {
+        "px": 486,
+        "span": 19.36,
+        "size": [
+          19.36,
+          16.47,
+          0.82
+        ],
+        "dist": 25.8,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          2.6,
+          3.8,
+          20.5
+        ]
+      },
+      {
+        "px": 470,
+        "span": 16.47,
+        "size": [
+          2.82,
+          16.47,
+          0.82
+        ],
+        "dist": 22.7,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          -2.1,
+          3.8,
+          20.5
+        ]
+      },
+      {
+        "px": 451,
+        "span": 16.47,
+        "size": [
+          0,
+          16.47,
+          2.17
+        ],
+        "dist": 23.6,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          -2.1,
+          3.8,
+          18.3
+        ]
+      },
+      {
+        "px": 450,
+        "span": 16.47,
+        "size": [
+          4.18,
+          16.47,
+          2.99
+        ],
+        "dist": 23.7,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          -6.3,
+          3.8,
+          18.3
+        ]
+      },
+      {
+        "px": 440,
+        "span": 16.47,
+        "size": [
+          1.88,
+          16.47,
+          5.97
+        ],
+        "dist": 24.2,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          0.7,
+          3.8,
+          15.4
+        ]
+      },
+      {
+        "px": 436,
+        "span": 23.29,
+        "size": [
+          10.44,
+          16.47,
+          23.29
+        ],
+        "dist": 34.6,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          -22.1,
+          3.8,
+          -2
+        ]
+      }
+    ],
+    "street": [
+      {
+        "px": 6697,
+        "span": 253.75,
+        "size": [
+          253.75,
+          0,
+          253.75
+        ],
+        "dist": 24.6,
+        "type": "MeshBasicMaterial",
+        "color": "#ff4fd8",
+        "hasMap": false,
+        "at": [
+          -120.9,
+          3.2,
+          -130.9
+        ]
+      },
+      {
+        "px": 5982,
+        "span": 250,
+        "size": [
+          250,
+          36,
+          250
+        ],
+        "dist": 27.1,
+        "type": "MeshBasicMaterial",
+        "color": "#c45bff",
+        "hasMap": false,
+        "at": [
+          -119,
+          -2,
+          -129
+        ]
+      },
+      {
+        "px": 1868,
+        "span": 104.51,
+        "size": [
+          104.25,
+          55.21,
+          104.51
+        ],
+        "dist": 36.3,
+        "type": "MeshToonMaterial",
+        "color": "#3dffa6",
+        "hasMap": false,
+        "at": [
+          -50.2,
+          -50.9,
+          -51.8
+        ]
+      },
+      {
+        "px": 1608,
+        "span": 16.4,
+        "size": [
+          16.4,
+          4.92,
+          11.92
+        ],
+        "dist": 6.6,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          5,
+          6.3,
+          9.1
+        ]
+      },
+      {
+        "px": 1274,
+        "span": 19.36,
+        "size": [
+          19.36,
+          16.47,
+          0.82
+        ],
+        "dist": 9.8,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          2.6,
+          3.8,
+          20.5
+        ]
+      },
+      {
+        "px": 1260,
+        "span": 16.47,
+        "size": [
+          0.99,
+          16.47,
+          5.53
+        ],
+        "dist": 8.5,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          20.9,
+          3.8,
+          15
+        ]
+      },
+      {
+        "px": 1014,
+        "span": 3.2,
+        "size": [
+          3.2,
+          3.2,
+          0.8
+        ],
+        "dist": 2,
+        "type": "MeshPhongMaterial",
+        "color": "#0041a3",
+        "hasMap": true,
+        "at": [
+          14.8,
+          1.6,
+          18.2
+        ]
+      },
+      {
+        "px": 879,
+        "span": 21.38,
+        "size": [
+          0.99,
+          16.47,
+          21.38
+        ],
+        "dist": 15.8,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          20.9,
+          3.8,
+          -6.4
+        ]
+      },
+      {
+        "px": 752,
+        "span": 9.09,
+        "size": [
+          9.09,
+          5.86,
+          8.68
+        ],
+        "dist": 7.8,
+        "type": "MeshPhongMaterial",
+        "color": "#ffffff",
+        "hasMap": true,
+        "at": [
+          20.7,
+          -0.1,
+          13.6
+        ]
+      },
+      {
+        "px": 724,
+        "span": 18.15,
+        "size": [
+          18.15,
+          15.78,
+          9.46
+        ],
+        "dist": 16.2,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          -2.4,
+          4.9,
+          4.2
+        ]
+      }
+    ],
+    "plaza": [
+      {
+        "px": 6727,
+        "span": 253.75,
+        "size": [
+          253.75,
+          0,
+          253.75
+        ],
+        "dist": 24.4,
+        "type": "MeshBasicMaterial",
+        "color": "#ff4fd8",
+        "hasMap": false,
+        "at": [
+          -120.9,
+          3.2,
+          -130.9
+        ]
+      },
+      {
+        "px": 6685,
+        "span": 250,
+        "size": [
+          250,
+          36,
+          250
+        ],
+        "dist": 24.2,
+        "type": "MeshBasicMaterial",
+        "color": "#c45bff",
+        "hasMap": false,
+        "at": [
+          -119,
+          -2,
+          -129
+        ]
+      },
+      {
+        "px": 4046,
+        "span": 16.47,
+        "size": [
+          1.88,
+          16.47,
+          5.97
+        ],
+        "dist": 2.6,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          0.7,
+          3.8,
+          15.4
+        ]
+      },
+      {
+        "px": 3485,
+        "span": 16.47,
+        "size": [
+          0,
+          16.47,
+          2.17
+        ],
+        "dist": 3.1,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          -2.1,
+          3.8,
+          18.3
+        ]
+      },
+      {
+        "px": 3420,
+        "span": 16.47,
+        "size": [
+          2.82,
+          16.47,
+          0.82
+        ],
+        "dist": 3.1,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          -2.1,
+          3.8,
+          20.5
+        ]
+      },
+      {
+        "px": 2203,
+        "span": 16.47,
+        "size": [
+          4.18,
+          16.47,
+          2.99
+        ],
+        "dist": 4.8,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          -6.3,
+          3.8,
+          18.3
+        ]
+      },
+      {
+        "px": 1779,
+        "span": 104.51,
+        "size": [
+          104.25,
+          55.21,
+          104.51
+        ],
+        "dist": 38.1,
+        "type": "MeshToonMaterial",
+        "color": "#3dffa6",
+        "hasMap": false,
+        "at": [
+          -50.2,
+          -50.9,
+          -51.8
+        ]
+      },
+      {
+        "px": 1514,
+        "span": 16.47,
+        "size": [
+          4.34,
+          16.47,
+          6.67
+        ],
+        "dist": 7.1,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          -6.3,
+          3.8,
+          10
+        ]
+      },
+      {
+        "px": 1374,
+        "span": 16.43,
+        "size": [
+          7.26,
+          3.2,
+          16.43
+        ],
+        "dist": 7.7,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          -5.1,
+          4.1,
+          4.2
+        ]
+      },
+      {
+        "px": 1318,
+        "span": 11.92,
+        "size": [
+          2.87,
+          0,
+          11.92
+        ],
+        "dist": 5.9,
+        "type": "MeshStandardMaterial",
+        "color": "#ffe8f2",
+        "hasMap": true,
+        "at": [
+          2.2,
+          7.1,
+          9.1
+        ]
+      }
+    ]
+  },
+  "canvas": "1280x720",
+  "diagError": null,
+  "screen": "game",
+  "fps": 11,
+  "worstFrameMs": 1133,
+  "frames": 731,
+  "drawCalls": 334,
+  "triangles": 128176,
+  "geometries": 576,
+  "textures": 97,
+  "programs": 31,
+  "sceneMeshes": 2668,
+  "sceneSkinnedMeshes": 39,
+  "skinnedBones": 1253,
+  "mirrorMaterials": 334,
+  "envSet": true,
+  "assets": {
+    "total": 168,
+    "byState": {
+      "idle": 0,
+      "loading": 0,
+      "ready": 168,
+      "error": 0
+    },
+    "failures": [],
+    "failureCount": 0
+  },
+  "player": {
+    "px": 0,
+    "py": 49.9,
+    "pz": 0,
+    "gliding": true,
+    "alive": true,
+    "zone": {
+      "x": 6,
+      "z": -4,
+      "r": 125,
+      "left": 53
+    },
+    "distFromZoneCentre": 7.2,
+    "outside": false,
+    "fog": {
+      "color": "#f7c6e4",
+      "near": 40,
+      "far": 155
+    },
+    "islandR": 56,
+    "groundUnderPlayer": 2.8
+  },
+  "bots": {
+    "total": 43,
+    "bad": [],
+    "grounded": 0,
+    "states": {
+      "glide": 43
+    }
+  },
+  "city": {
+    "min": [
+      -22.1,
+      2.8,
+      -21.3
+    ],
+    "max": [
+      21.9,
+      22.5,
+      21.4
+    ],
+    "size": [
+      44,
+      19.7,
+      42.7
+    ],
+    "scale": 0.802,
+    "meshes": 359
+  },
+  "onScreen": [
+    {
+      "px": 20842,
+      "span": 253.75,
+      "size": [
+        253.75,
+        0,
+        253.75
+      ],
+      "dist": 7.9,
+      "type": "MeshBasicMaterial",
+      "color": "#ff4fd8",
+      "hasMap": false,
+      "at": [
+        -120.9,
+        3.2,
+        -130.9
+      ]
+    },
+    {
+      "px": 9231,
+      "span": 250,
+      "size": [
+        250,
+        36,
+        250
+      ],
+      "dist": 17.5,
+      "type": "MeshBasicMaterial",
+      "color": "#c45bff",
+      "hasMap": false,
+      "at": [
+        -119,
+        -2,
+        -129
+      ]
+    },
+    {
+      "px": 815,
+      "span": 11.19,
+      "size": [
+        11.19,
+        0,
+        7.83
+      ],
+      "dist": 8.9,
+      "type": "MeshStandardMaterial",
+      "color": "#ffe8f2",
+      "hasMap": true,
+      "at": [
+        -6.5,
+        8.3,
+        -6.9
+      ]
+    },
+    {
+      "px": 767,
+      "span": 16.47,
+      "size": [
+        4.42,
+        16.47,
+        3.42
+      ],
+      "dist": 13.9,
+      "type": "MeshStandardMaterial",
+      "color": "#ffe8f2",
+      "hasMap": true,
+      "at": [
+        -9.2,
+        3.8,
+        -2.1
+      ]
+    },
+    {
+      "px": 762,
+      "span": 13.24,
+      "size": [
+        6.86,
+        13.24,
+        5.12
+      ],
+      "dist": 11.3,
+      "type": "MeshStandardMaterial",
+      "color": "#ffe8f2",
+      "hasMap": true,
+      "at": [
+        -2.1,
+        3.8,
+        -6.5
+      ]
+    },
+    {
+      "px": 704,
+      "span": 17.92,
+      "size": [
+        17.92,
+        3.48,
+        10.85
+      ],
+      "dist": 16.5,
+      "type": "MeshStandardMaterial",
+      "color": "#ffe8f2",
+      "hasMap": true,
+      "at": [
+        -8.7,
+        3.9,
+        -20.9
+      ]
+    },
+    {
+      "px": 676,
+      "span": 16.42,
+      "size": [
+        16.42,
+        0.98,
+        10.98
+      ],
+      "dist": 15.8,
+      "type": "MeshStandardMaterial",
+      "color": "#ffe8f2",
+      "hasMap": true,
+      "at": [
+        4.7,
+        7.3,
+        -10.1
+      ]
+    },
+    {
+      "px": 659,
+      "span": 16.67,
+      "size": [
+        10.48,
+        16.67,
+        7.87
+      ],
+      "dist": 16.4,
+      "type": "MeshStandardMaterial",
+      "color": "#ffe8f2",
+      "hasMap": true,
+      "at": [
+        -9.2,
+        3.8,
+        -14.2
+      ]
+    },
+    {
+      "px": 504,
+      "span": 18.68,
+      "size": [
+        4.26,
+        18.68,
+        8.84
+      ],
+      "dist": 24,
+      "type": "MeshStandardMaterial",
+      "color": "#ffe8f2",
+      "hasMap": true,
+      "at": [
+        -21.2,
+        3.8,
+        -10.8
+      ]
+    },
+    {
+      "px": 479,
+      "span": 9.39,
+      "size": [
+        0.27,
+        9.39,
+        0.29
+      ],
+      "dist": 12.7,
+      "type": "MeshStandardMaterial",
+      "color": "#ffe8f2",
+      "hasMap": true,
+      "at": [
+        -0.5,
+        7.9,
+        -1.7
+      ]
+    }
+  ],
+  "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+  "trace": [
+    {
+      "label": "menu",
+      "screen": "menu",
+      "phase": null,
+      "fps": 29,
+      "calls": 94,
+      "tris": 13456,
+      "sig": "menu/null/94",
+      "n": 1,
+      "repeats": 1
+    },
+    {
+      "label": "loading",
+      "screen": "loading",
+      "phase": "boot",
+      "fps": 5,
+      "calls": 94,
+      "tris": 13456,
+      "sig": "loading/boot/94",
+      "n": 2,
+      "repeats": 2
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 31,
+      "calls": 115,
+      "tris": 52538,
+      "sig": "game/lobby/115",
+      "n": 1,
+      "repeats": 1
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 9,
+      "calls": 296,
+      "tris": 80346,
+      "sig": "game/lobby/296",
+      "n": 3,
+      "repeats": 3
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 9,
+      "calls": 294,
+      "tris": 80066,
+      "sig": "game/lobby/294",
+      "n": 3,
+      "repeats": 3
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 9,
+      "calls": 296,
+      "tris": 80346,
+      "sig": "game/lobby/296",
+      "n": 3,
+      "repeats": 3
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 9,
+      "calls": 295,
+      "tris": 80206,
+      "sig": "game/lobby/295",
+      "n": 1,
+      "repeats": 1
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 9,
+      "calls": 294,
+      "tris": 80066,
+      "sig": "game/lobby/294",
+      "n": 3,
+      "repeats": 3
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 9,
+      "calls": 296,
+      "tris": 80346,
+      "sig": "game/lobby/296",
+      "n": 4,
+      "repeats": 4
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 11,
+      "calls": 294,
+      "tris": 80066,
+      "sig": "game/lobby/294",
+      "n": 3,
+      "repeats": 3
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 9,
+      "calls": 296,
+      "tris": 80346,
+      "sig": "game/lobby/296",
+      "n": 3,
+      "repeats": 3
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 11,
+      "calls": 294,
+      "tris": 80066,
+      "sig": "game/lobby/294",
+      "n": 4,
+      "repeats": 4
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 10,
+      "calls": 296,
+      "tris": 80346,
+      "sig": "game/lobby/296",
+      "n": 4,
+      "repeats": 4
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 9,
+      "calls": 294,
+      "tris": 80066,
+      "sig": "game/lobby/294",
+      "n": 3,
+      "repeats": 3
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 9,
+      "calls": 296,
+      "tris": 80346,
+      "sig": "game/lobby/296",
+      "n": 3,
+      "repeats": 3
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 9,
+      "calls": 294,
+      "tris": 80066,
+      "sig": "game/lobby/294",
+      "n": 3,
+      "repeats": 3
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 10,
+      "calls": 296,
+      "tris": 80346,
+      "sig": "game/lobby/296",
+      "n": 4,
+      "repeats": 4
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 9,
+      "calls": 294,
+      "tris": 80066,
+      "sig": "game/lobby/294",
+      "n": 4,
+      "repeats": 4
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 9,
+      "calls": 296,
+      "tris": 80346,
+      "sig": "game/lobby/296",
+      "n": 3,
+      "repeats": 3
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 9,
+      "calls": 294,
+      "tris": 80066,
+      "sig": "game/lobby/294",
+      "n": 3,
+      "repeats": 3
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 11,
+      "calls": 296,
+      "tris": 80346,
+      "sig": "game/lobby/296",
+      "n": 4,
+      "repeats": 4
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "lobby",
+      "fps": 9,
+      "calls": 294,
+      "tris": 80066,
+      "sig": "game/lobby/294",
+      "n": 1,
+      "repeats": 1
+    },
+    {
+      "label": "loading",
+      "screen": "game",
+      "phase": "bus",
+      "fps": 9,
+      "calls": 354,
+      "tris": 96292,
+      "sig": "game/bus/354",
+      "n": 1,
+      "repeats": 1
+    },
+    {
+      "label": "bus",
+      "screen": "game",
+      "phase": "bus",
+      "fps": 7,
+      "calls": 359,
+      "tris": 96645,
+      "sig": "game/bus/359",
+      "n": 1,
+      "repeats": 1
+    },
+    {
+      "label": "play",
+      "screen": "game",
+      "phase": "play",
+      "fps": 4,
+      "calls": 445,
+      "tris": 134266,
+      "sig": "game/play/445",
+      "n": 1,
+      "repeats": 1
+    },
+    {
+      "label": "play",
+      "screen": "game",
+      "phase": "play",
+      "fps": 4,
+      "calls": 385,
+      "tris": 130374,
+      "sig": "game/play/385",
+      "n": 1,
+      "repeats": 1
+    },
+    {
+      "label": "play",
+      "screen": "game",
+      "phase": "play",
+      "fps": 5,
+      "calls": 343,
+      "tris": 128750,
+      "sig": "game/play/343",
+      "n": 1,
+      "repeats": 1
+    },
+    {
+      "label": "play",
+      "screen": "game",
+      "phase": "play",
+      "fps": 11,
+      "calls": 337,
+      "tris": 128160,
+      "sig": "game/play/337",
+      "n": 1,
+      "repeats": 1
+    },
+    {
+      "label": "final",
+      "screen": "game",
+      "phase": "play",
+      "fps": 8,
+      "calls": 334,
+      "tris": 128176,
+      "sig": "game/play/334",
+      "n": 1,
+      "repeats": 1
+    }
+  ]
+}

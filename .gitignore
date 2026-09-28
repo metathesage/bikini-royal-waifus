@@ -1,0 +1,83 @@
+node_modules
+dist
+.DS_Store
+Thumbs.db
+
+# Local probe output and scratch files from tools/*.mjs
+*.log
+*.tmp
+*.out.txt
+*.err.txt
+out.tmp
+err.tmp
+probe-*.png
+.tmpview/
+report.json
+*.gray.json
+*.sky.json
+*.range.json
+
+# Probe/render scratch left in the project root by tools/*.mjs and by hand.
+# Everything here is regenerable output, not source - see .gitignore rationale in
+# README.md. None of it is needed to build or run the game.
+.r-*.json
+.r.*.log
+.r.tmp
+.r.o
+r.*.json
+r.*.log
+r.*.mjs.out
+*.probe.out
+*.probe.err.txt
+.probe*.out.txt
+.probe*.err.txt
+.serversrv.*
+.devsrv.*
+.dev.log
+.dev.err
+.vite.log
+.v_*.txt
+.r[0-9]*.log
+.isl*.log
+.s[0-9]*.log
+.r[0-9]*.txt
+.nan.log
+.gp.log
+.smoke.all.txt
+tests.log
+dev.log
+vite.log
+e.tmp
+r.tmp
+
+# Screenshots and one-off captures from the render/probe harness.
+*.png
+!public/**/*.png
+Bikini Royale _ Luxury Start Menu.png
+crop-tl.png
+ref-menu.png
+ui-menu*.png
+island-*.png
+graybox-*.png
+fix-check*.png
+try-play*.png
+shot-*.png
+range-stats*.png
+tmp-*.png
+fix-check/
+.freebuff/
+
+# Local scratch JSON / text produced by ad-hoc runs.
+cast.json
+f[0-9]*.txt
+g[0-9]*.txt
+h_kit.txt
+h_rig.txt
+he_kit.txt
+he_rig.txt
+
+# 1.3 GB of art source, unrelated to running the game. The shipped, runtime
+# assets under public/ are what matter and they ARE tracked.
+character design/
+weapons/
+

@@ -1,0 +1,308 @@
+{
+  "psxFemale": [
+    {
+      "id": "character_17_female_police",
+      "name": "Character 17 Female Police",
+      "url": "assets/characters/psx/Character_17_Female_Police.fbx",
+      "tex": "assets/characters/psx/character_17_female_police.png"
+    },
+    {
+      "id": "character_18_female_police",
+      "name": "Character 18 Female Police",
+      "url": "assets/characters/psx/Character_18_Female_Police.fbx",
+      "tex": "assets/characters/psx/character_18_female_police.png"
+    },
+    {
+      "id": "character_19_female_police",
+      "name": "Character 19 Female Police",
+      "url": "assets/characters/psx/Character_19_Female_Police.fbx",
+      "tex": "assets/characters/psx/character_19_female_police.png"
+    },
+    {
+      "id": "character_20_female_police",
+      "name": "Character 20 Female Police",
+      "url": "assets/characters/psx/Character_20_Female_Police.fbx",
+      "tex": "assets/characters/psx/character_20_female_police.png"
+    },
+    {
+      "id": "character_21_female_firefighter",
+      "name": "Character 21 Female Firefighter",
+      "url": "assets/characters/psx/Character_21_Female_Firefighter.fbx",
+      "tex": "assets/characters/psx/character_21_female_firefighter.png"
+    },
+    {
+      "id": "character_22_female_firefighter",
+      "name": "Character 22 Female Firefighter",
+      "url": "assets/characters/psx/Character_22_Female_Firefighter.fbx",
+      "tex": "assets/characters/psx/character_22_female_firefighter.png"
+    },
+    {
+      "id": "character_23_female_doctor",
+      "name": "Character 23 Female Doctor",
+      "url": "assets/characters/psx/Character_23_Female_Doctor.fbx",
+      "tex": "assets/characters/psx/character_23_female_doctor.png"
+    },
+    {
+      "id": "character_24_female_doctor",
+      "name": "Character 24 Female Doctor",
+      "url": "assets/characters/psx/Character_24_Female_Doctor.fbx",
+      "tex": "assets/characters/psx/character_24_female_doctor.png"
+    },
+    {
+      "id": "character_25_female_police",
+      "name": "Character 25 Female Police",
+      "url": "assets/characters/psx/Character_25_Female_Police.fbx",
+      "tex": "assets/characters/psx/character_25_female_police.png"
+    },
+    {
+      "id": "character_26_female_police",
+      "name": "Character 26 Female Police",
+      "url": "assets/characters/psx/Character_26_Female_Police.fbx",
+      "tex": "assets/characters/psx/character_26_female_police.png"
+    },
+    {
+      "id": "character_27_female_hm",
+      "name": "Character 27 Female HM",
+      "url": "assets/characters/psx/Character_27_Female_HM.fbx",
+      "tex": "assets/characters/psx/character_27_female_hm.png"
+    },
+    {
+      "id": "character_28_female_hm",
+      "name": "Character 28 Female HM",
+      "url": "assets/characters/psx/Character_28_Female_HM.fbx",
+      "tex": "assets/characters/psx/character_28_female_hm.png"
+    },
+    {
+      "id": "character_29_female",
+      "name": "Character 29 Female",
+      "url": "assets/characters/psx/Character_29_Female.fbx",
+      "tex": "assets/characters/psx/character_29_female.png"
+    },
+    {
+      "id": "character_30_female",
+      "name": "Character 30 Female",
+      "url": "assets/characters/psx/Character_30_Female.fbx",
+      "tex": "assets/characters/psx/character_30_female.png"
+    },
+    {
+      "id": "character_31_female",
+      "name": "Character 31 Female",
+      "url": "assets/characters/psx/Character_31_Female.fbx",
+      "tex": "assets/characters/psx/character_31_female.png"
+    },
+    {
+      "id": "character_32_female",
+      "name": "Character 32 Female",
+      "url": "assets/characters/psx/Character_32_Female.fbx",
+      "tex": "assets/characters/psx/character_32_female.png"
+    },
+    {
+      "id": "character_33_female",
+      "name": "Character 33 Female",
+      "url": "assets/characters/psx/Character_33_Female.fbx",
+      "tex": "assets/characters/psx/character_33_female.png"
+    },
+    {
+      "id": "character_34_female",
+      "name": "Character 34 Female",
+      "url": "assets/characters/psx/Character_34_Female.fbx",
+      "tex": "assets/characters/psx/character_34_female.png"
+    },
+    {
+      "id": "character_35_female",
+      "name": "Character 35 Female",
+      "url": "assets/characters/psx/Character_35_Female.fbx",
+      "tex": "assets/characters/psx/character_35_female.png"
+    },
+    {
+      "id": "character_36_female",
+      "name": "Character 36 Female",
+      "url": "assets/characters/psx/Character_36_Female.fbx",
+      "tex": "assets/characters/psx/character_36_female.png"
+    },
+    {
+      "id": "character_37_female",
+      "name": "Character 37 Female",
+      "url": "assets/characters/psx/Character_37_Female.fbx",
+      "tex": "assets/characters/psx/character_37_female.png"
+    },
+    {
+      "id": "character_38_female",
+      "name": "Character 38 Female",
+      "url": "assets/characters/psx/Character_38_Female.fbx",
+      "tex": "assets/characters/psx/character_38_female.png"
+    },
+    {
+      "id": "character_39_female",
+      "name": "Character 39 Female",
+      "url": "assets/characters/psx/Character_39_Female.fbx",
+      "tex": "assets/characters/psx/character_39_female.png"
+    },
+    {
+      "id": "character_40_female",
+      "name": "Character 40 Female",
+      "url": "assets/characters/psx/Character_40_Female.fbx",
+      "tex": "assets/characters/psx/character_40_female.png"
+    },
+    {
+      "id": "character_41_female",
+      "name": "Character 41 Female",
+      "url": "assets/characters/psx/Character_41_Female.fbx",
+      "tex": "assets/characters/psx/character_41_female.png"
+    },
+    {
+      "id": "character_42_female",
+      "name": "Character 42 Female",
+      "url": "assets/characters/psx/Character_42_Female.fbx",
+      "tex": "assets/characters/psx/character_42_female.png"
+    },
+    {
+      "id": "character_43_female",
+      "name": "Character 43 Female",
+      "url": "assets/characters/psx/Character_43_Female.fbx",
+      "tex": "assets/characters/psx/character_43_female.png"
+    },
+    {
+      "id": "character_44_female",
+      "name": "Character 44 Female",
+      "url": "assets/characters/psx/Character_44_Female.fbx",
+      "tex": "assets/characters/psx/character_44_female.png"
+    },
+    {
+      "id": "character_45_female",
+      "name": "Character 45 Female",
+      "url": "assets/characters/psx/Character_45_Female.fbx",
+      "tex": "assets/characters/psx/character_45_female.png"
+    },
+    {
+      "id": "character_46_female",
+      "name": "Character 46 Female",
+      "url": "assets/characters/psx/Character_46_Female.fbx",
+      "tex": "assets/characters/psx/character_46_female.png"
+    },
+    {
+      "id": "character_female_02",
+      "name": "Character Female 02",
+      "url": "assets/characters/psx/Character_Female_02.fbx",
+      "tex": "assets/characters/psx/character_female_02.png"
+    },
+    {
+      "id": "character_female_03",
+      "name": "Character Female 03",
+      "url": "assets/characters/psx/Character_Female_03.fbx",
+      "tex": "assets/characters/psx/character_female_03.png"
+    },
+    {
+      "id": "character_female_04",
+      "name": "Character Female 04",
+      "url": "assets/characters/psx/Character_Female_04.fbx",
+      "tex": "assets/characters/psx/character_female_04.png"
+    },
+    {
+      "id": "character_female_05",
+      "name": "Character Female 05",
+      "url": "assets/characters/psx/Character_Female_05.fbx",
+      "tex": "assets/characters/psx/character_female_05.png"
+    },
+    {
+      "id": "character_female_06",
+      "name": "Character Female 06",
+      "url": "assets/characters/psx/Character_Female_06.fbx",
+      "tex": "assets/characters/psx/character_female_06.png"
+    },
+    {
+      "id": "character_female_07",
+      "name": "Character Female 07",
+      "url": "assets/characters/psx/Character_Female_07.fbx",
+      "tex": "assets/characters/psx/character_female_07.png"
+    },
+    {
+      "id": "character_female_08",
+      "name": "Character Female 08",
+      "url": "assets/characters/psx/Character_Female_08.fbx",
+      "tex": "assets/characters/psx/character_female_08.png"
+    },
+    {
+      "id": "character_female_09",
+      "name": "Character Female 09",
+      "url": "assets/characters/psx/Character_Female_09.fbx",
+      "tex": "assets/characters/psx/character_female_09.png"
+    },
+    {
+      "id": "character_female_10",
+      "name": "Character Female 10",
+      "url": "assets/characters/psx/Character_Female_10.fbx",
+      "tex": "assets/characters/psx/character_female_10.png"
+    },
+    {
+      "id": "character_female_11",
+      "name": "Character Female 11",
+      "url": "assets/characters/psx/Character_Female_11.fbx",
+      "tex": "assets/characters/psx/character_female_11.png"
+    },
+    {
+      "id": "character_female_12",
+      "name": "Character Female 12",
+      "url": "assets/characters/psx/Character_Female_12.fbx",
+      "tex": "assets/characters/psx/character_female_12.png"
+    },
+    {
+      "id": "character_female_13",
+      "name": "Character Female 13",
+      "url": "assets/characters/psx/Character_Female_13.fbx",
+      "tex": "assets/characters/psx/character_female_13.png"
+    },
+    {
+      "id": "character_female_14",
+      "name": "Character Female 14",
+      "url": "assets/characters/psx/Character_Female_14.fbx",
+      "tex": "assets/characters/psx/character_female_14.png"
+    },
+    {
+      "id": "character_female_15",
+      "name": "Character Female 15",
+      "url": "assets/characters/psx/Character_Female_15.fbx",
+      "tex": "assets/characters/psx/character_female_15.png"
+    },
+    {
+      "id": "character_female_16",
+      "name": "Character Female 16",
+      "url": "assets/characters/psx/Character_Female_16.fbx",
+      "tex": "assets/characters/psx/character_female_16.png"
+    }
+  ],
+  "items": {
+    "active_camo_prism": "assets/items/Active_Camo_Prism.glb",
+    "biofoam_medkit": "assets/items/BioFoam_Medkit.glb",
+    "br_supply_chest_legendary": "assets/items/BR_Supply_Chest_Legendary.glb",
+    "damage_boost_overdrive": "assets/items/Damage_Boost_Overdrive.glb",
+    "deployable_drop_shield_puck": "assets/items/Deployable_Drop_Shield_Puck.glb",
+    "heavy_munitions_ammo_crate": "assets/items/Heavy_Munitions_Ammo_Crate.glb",
+    "overshield_power_core": "assets/items/Overshield_Power_Core.glb",
+    "plasma_sticky_grenade": "assets/items/Plasma_Sticky_Grenade.glb",
+    "shield_battery_cell": "assets/items/Shield_Battery_Cell.glb",
+    "speed_boost_thruster_pack": "assets/items/Speed_Boost_Thruster_Pack.glb"
+  },
+  "heroes": {
+    "kasumi_sailor": {
+      "id": "kasumi_sailor",
+      "name": "Kasumi Sailor",
+      "url": "assets/characters/Kasumi_Tactical_Sailor.glb"
+    },
+    "kasumi_sailor_hd": {
+      "id": "kasumi_sailor_hd",
+      "name": "Kasumi HD",
+      "url": "assets/characters/Kasumi_Tactical_Sailor_AAA_100k.glb"
+    },
+    "scifi_soldier": {
+      "id": "scifi_soldier",
+      "name": "Scifi Soldier",
+      "url": "assets/characters/SciFi_Waifu_Soldier.glb"
+    },
+    "mai_maid": {
+      "id": "mai_maid",
+      "name": "Mai Maid",
+      "url": "assets/characters/mai_maid_-bourin.glb"
+    }
+  }
+}

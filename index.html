@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Bikini Royal Waifus</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%2306030c'/%3E%3Cpath d='M16 5v9M16 18v9M5 16h9M18 16h9' stroke='%23ff2e8a' stroke-width='3' stroke-linecap='square'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <div id="ui">
+    <section class="screen screen-splash" data-screen="splash" data-nav-root>
+      <!-- Profile chrome. Absolutely positioned inside the screen so it respects
+           the notch insets but never participates in the copy column's flex
+           layout. paintPlate() fills every .profile, so the menu copy below can
+           carry an identical bar without duplicating ids. -->
+      <header class="topbar">
+        <div class="profile">
+          <span class="pavatar" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M2.5 19h19M4.5 19 3 7.5l5.2 4.4L12 4l3.8 7.9L21 7.5 19.5 19" /></svg>
+          </span>
+          <span class="pinfo">
+            <b class="pname">Recruit</b>
+            <span class="plevel"><em>LV 1</em><i class="xpbar"><u></u></i></span>
+          </span>
+          <span class="ptitle">Crystal Darling</span>
+        </div>
+        <div class="wallet" aria-hidden="true">
+          <span class="chip coins"><i></i><b>0</b></span>
+          <span class="chip gems"><i></i><b>0</b></span>
+        </div>
+      </header>
+
+      <div class="splash-copy">
+        <div class="logo">
+          <svg class="crest" viewBox="0 0 64 34" aria-hidden="true">
+            <path d="M4 30h56M8 30 4 6l15 11L32 2l13 15L60 6l-4 24" />
+            <circle cx="4" cy="6" r="3" /><circle cx="32" cy="2" r="3" /><circle cx="60" cy="6" r="3" />
+          </svg>
+          <p class="eyebrow">Sunset district · 22 squads · one bikini</p>
+          <h1 class="wordmark">
+            <span class="ln a">Bikini Royal</span>
+            <span class="ln b">Waifus</span>
+          </h1>
+        </div>
+        <p class="tag">Drop from the UFO. Loot the crystals. Be the last waifu.</p>
+        <button class="plate primary" data-nav data-action="boot">
+          <span class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" /><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5" /><circle cx="12" cy="12" r="2.4" /></svg>
+          </span>
+          <span>Play</span>
+        </button>
+        <p class="fine">Click or press <b>A</b> · Prototype · bots, not online · Xbox layout + mouse</p>
+      </div>
+    </section>
+
+    <section class="screen screen-menu" data-screen="menu" data-nav-root>
+      <header class="topbar">
+        <div class="profile">
+          <span class="pavatar" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M2.5 19h19M4.5 19 3 7.5l5.2 4.4L12 4l3.8 7.9L21 7.5 19.5 19" /></svg>
+          </span>
+          <span class="pinfo">
+            <b class="pname">Recruit</b>
+            <span class="plevel"><em>LV 1</em><i class="xpbar"><u></u></i></span>
+          </span>
+          <span class="ptitle">Crystal Darling</span>
+        </div>
+        <div class="wallet" aria-hidden="true">
+          <span class="chip coins"><i></i><b>0</b></span>
+          <span class="chip gems"><i></i><b>0</b></span>
+        </div>
+      </header>
+
+      <div class="menu-col">
+        <div class="logo">
+          <svg class="crest" viewBox="0 0 64 34" aria-hidden="true">
+            <path d="M4 30h56M8 30 4 6l15 11L32 2l13 15L60 6l-4 24" />
+            <circle cx="4" cy="6" r="3" /><circle cx="32" cy="2" r="3" /><circle cx="60" cy="6" r="3" />
+          </svg>
+          <p class="eyebrow">Duo drop · 8 minute storm</p>
+          <h1 class="wordmark">
+            <span class="ln a">Bikini Royal</span>
+            <span class="ln b">Waifus</span>
+          </h1>
+        </div>
+        <div class="stack">
+          <button class="plate primary" data-nav data-action="play">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" /><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5" /><circle cx="12" cy="12" r="2.4" /></svg>
+            </span>
+            <span>Play</span>
+          </button>
+          <button class="plate" data-nav data-action="locker">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M12 7.2a2.4 2.4 0 1 1 2.4 2.4c-1.3 0-2.4 1-2.4 2.3v.8" /><path d="M3.4 18.6 12 12.4l8.6 6.2z" /></svg>
+            </span>
+            <span>Locker</span>
+          </button>
+          <button class="plate" data-nav data-action="viewer">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M1.8 12S5.6 5.6 12 5.6 22.2 12 22.2 12 18.4 18.4 12 18.4 1.8 12 1.8 12Z" /><circle cx="12" cy="12" r="3.1" /></svg>
+            </span>
+            <span>View Waifu</span>
+          </button>
+          <button class="plate" data-nav data-action="armory">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M20.4 3.6h-4.8L9 10.2v4.2l-2.4 2.4-3-3 2.4-2.4h4.2l6.6-6.6z" /><path d="m6.6 17.4-2.4 2.4M9 15l1.8 1.8" /></svg>
+            </span>
+            <span>Armory</span>
+          </button>
+          <button class="plate dev" data-nav data-action="range">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6" /><circle cx="12" cy="12" r="4" /><path d="M12 2.4v3.4M12 18.2v3.4M2.4 12h3.4M18.2 12h3.4" /></svg>
+            </span>
+            <span>Range <i>(dev)</i></span>
+          </button>
+          <button class="plate" data-nav data-action="settings">
+            <span class="ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" /><path d="M12 2.6v3M12 18.4v3M21.4 12h-3M5.6 12h-3M18.6 5.4l-2.1 2.1M7.5 16.5l-2.1 2.1M18.6 18.6l-2.1-2.1M7.5 7.5 5.4 5.4" /></svg>
+            </span>
+            <span>Settings</span>
+          </button>
+        </div>
+        <p class="fine">Prototype · bots, not online · Xbox layout + mouse</p>
+      </div>
+    </section>
+
+    <section class="screen screen-locker" data-screen="locker" data-nav-root>
+      <header class="bar">
+        <button class="btn ghost" data-nav data-action="back">Back</button>
+        <h2>Locker</h2>
+        <button class="btn" data-nav data-action="viewer">View Waifu</button>
+      </header>
+      <div class="tabs" id="tabs"></div>
+      <div class="locker-body">
+        <div class="panel left-panel">
+          <label>Name <input id="name-input" maxlength="16" data-nav /></label>
+          <label>Title <input id="title-input" maxlength="28" data-nav /></label>
+          <div id="swatches"></div>
+          <label class="check"><input type="checkbox" id="tog-wet" /> Wet look</label>
+          <label class="check"><input type="checkbox" id="tog-sheer" /> Translucent</label>
+          <label class="check"><input type="checkbox" id="tog-glow" /> Glow trim</label>
+          <button class="btn" data-nav data-action="random">Random pull</button>
+        </div>
+        <div class="panel right-panel">
+          <div class="grid" id="grid"></div>
+        </div>
+      </div>
+      <footer class="presets" id="presets"></footer>
+    </section>
+
+    <section class="screen screen-viewer" data-screen="viewer" data-nav-root>
+      <header class="bar">
+        <button class="btn ghost" data-nav data-action="back">Back</button>
+        <h2>Waifu Viewer</h2>
+        <div class="seg" id="lights"></div>
+      </header>
+      <div class="viewer-dock">
+        <div class="seg" id="anims"></div>
+        <label class="slider">Physics
+          <input id="jiggle-slider" type="range" min="0.4" max="1.8" step="0.05" />
+          <span id="jiggle-read">Normal</span>
+        </label>
+        <div class="seg">
+          <button class="btn tiny" data-nav data-action="focus" data-part="face">Face</button>
+          <button class="btn tiny" data-nav data-action="focus" data-part="body">Body</button>
+          <button class="btn tiny" data-nav data-action="focus" data-part="bikini">Bikini</button>
+          <button class="btn tiny" data-nav data-action="focus" data-part="jewelry">Jewelry</button>
+          <button class="btn tiny" data-nav data-action="focus" data-part="full">Full</button>
+        </div>
+        <p class="fine">Drag to orbit · stick look · scroll / stick zoom</p>
+      </div>
+    </section>
+
+    <section class="screen screen-armory" data-screen="armory" data-nav-root>
+      <header class="bar">
+        <button class="btn ghost" data-nav data-action="back">Back</button>
+        <h2>Armory</h2>
+      </header>
+      <div class="armory" id="armory"></div>
+    </section>
+
+    <section class="screen screen-settings" data-screen="settings" data-nav-root>
+      <header class="bar">
+        <button class="btn ghost" data-nav data-action="back">Back</button>
+        <h2>Settings</h2>
+        <button class="btn" data-nav data-action="reset-binds">Reset keys</button>
+      </header>
+      <div class="settings">
+        <div class="panel">
+          <label class="slider">Mouse <input id="set-mouse" type="range" min="0.0008" max="0.006" step="0.0001" /></label>
+          <label class="slider">Gamepad look <input id="set-pad" type="range" min="1" max="5" step="0.05" /></label>
+          <label class="slider">FOV <input id="set-fov" type="range" min="60" max="100" step="1" /></label>
+          <label class="slider">Volume <input id="set-vol" type="range" min="0" max="1" step="0.01" /></label>
+          <label class="slider">Music <input id="set-music" type="range" min="0" max="1" step="0.01" /></label>
+          <label class="slider">Jiggle <input id="set-jiggle" type="range" min="0" max="1.8" step="0.05" /></label>
+          <label class="slider">Text size <input id="set-text" type="range" min="0.85" max="1.35" step="0.05" /></label>
+          <label class="check"><input id="set-invert" type="checkbox" /> Invert Y</label>
+          <label class="check"><input id="set-assist" type="checkbox" /> Gamepad aim assist</label>
+          <label class="check"><input id="set-shake" type="checkbox" /> Screen shake</label>
+          <label class="check"><input id="set-touch" type="checkbox" /> Touch controls</label>
+        </div>
+        <div class="panel">
+          <h3>Keyboard</h3>
+          <div id="rebinds"></div>
+          <h3>Xbox</h3>
+          <ul class="pad-map">
+            <li>Move / look — sticks</li>
+            <li>LT aim · RT fire · A jump · B crouch/slide</li>
+            <li>X reload & interact · Y swap · LB melee · RB dash</li>
+            <li>D-pad up/down items · left emote · right use item</li>
+            <li>View inspect · Menu pause</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen screen-loading" data-screen="loading">
+      <div class="load-card">
+        <p class="eyebrow" id="load-caption">Boarding the beam</p>
+        <h2 id="load-title">Raising the island</h2>
+        <div class="heart-bar"><span id="load-fill"></span></div>
+        <p class="fine" id="load-tip">Crystal hearts, not hit points.</p>
+      </div>
+    </section>
+
+    <section class="hud" data-screen="game">
+      <div class="hud-top">
+        <div class="alive" id="alive">44 alive</div>
+        <div class="compass" id="compass"></div>
+        <div class="zone" id="zone">Calm</div>
+      </div>
+      <canvas id="minimap" width="180" height="180"></canvas>
+      <div class="range" id="range" hidden></div>
+      <div class="feed" id="feed"></div>
+      <div class="labels" id="labels"></div>
+      <div class="cross" id="cross"></div>
+      <div class="scope" id="scope"></div>
+      <div class="hit" id="hit"></div>
+      <div class="vignette" id="vignette"></div>
+      <div class="dmg" id="dmg"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="prompt" id="prompt"></div>
+      <div class="channel" id="channel"><span></span></div>
+      <div class="buffs" id="buffs"></div>
+      <div class="partner" id="partner"></div>
+      <div class="hud-bottom">
+        <div class="bars">
+          <div class="bar-row"><span class="ico heart"></span><div class="track hp"><span id="hp"></span></div><b id="hp-n">100</b></div>
+          <div class="bar-row"><span class="ico crystal"></span><div class="track sh"><span id="sh"></span></div><b id="sh-n">0</b></div>
+        </div>
+        <div class="weapon-read">
+          <div id="wname">Ribbon Katana</div>
+          <div id="ammo"></div>
+        </div>
+        <div class="hotbar" id="hotbar"></div>
+      </div>
+      <div class="ability-read" id="ability" hidden></div>
+      <div class="touch" id="touch">
+        <div class="stick" id="stick-move"></div>
+        <div class="stick look" id="stick-look"></div>
+        <div class="touch-btns">
+          <button data-touch="jump">A</button>
+          <button data-touch="crouch">B</button>
+          <button data-touch="fire">RT</button>
+          <button data-touch="aim">LT</button>
+          <button data-touch="reload">X</button>
+          <button data-touch="melee">LB</button>
+          <button data-touch="ability">Z</button>
+          <button data-touch="use">Use</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen overlay screen-pause" data-screen="pause" data-nav-root>
+      <div class="modal">
+        <h2>Paused</h2>
+        <button class="btn xl" data-nav data-action="resume">Resume</button>
+        <button class="btn" data-nav data-action="viewer">View Waifu</button>
+        <button class="btn" data-nav data-action="settings">Settings</button>
+        <button class="btn" data-nav data-action="menu">Quit to menu</button>
+        <p class="fine">WASD move · mouse look · shift sprint · ctrl slide · space jump · E interact · R reload · Q melee · Z decree · F dash · C item · V inspect · 1/2/3 weapons</p>
+      </div>
+    </section>
+
+    <section class="screen overlay screen-end" data-screen="end" data-nav-root>
+      <div class="modal end-card">
+        <p class="eyebrow" id="end-kicker">Victory Royale</p>
+        <h2 id="end-title">You are the last waifu</h2>
+        <div id="end-stats"></div>
+        <button class="btn xl" data-nav data-action="again">Drop again</button>
+        <button class="btn" data-nav data-action="viewer">View Waifu</button>
+        <button class="btn" data-nav data-action="locker">Locker</button>
+        <button class="btn" data-nav data-action="menu">Menu</button>
+      </div>
+    </section>
+
+    <div class="toasts" id="toasts"></div>
+    <div id="fail" hidden>WebGL failed to start. This prototype needs a desktop browser with WebGL.</div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
