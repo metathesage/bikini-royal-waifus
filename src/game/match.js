@@ -2841,6 +2841,12 @@ function beginBus() {
         meshes,
         skinned,
         bones,
+        // What is actually driving the pose right now. `rig` and `clips` are
+        // different: a GLB can be rigged and still be animated procedurally, and
+        // before this existed a model shipping 33 unused clips looked identical
+        // to one playing them.
+        animSource: v ? (v.animSource || 'unknown') : 'none',
+        clips: v && v.clipNames ? v.clipNames : null,
         // Whether a load is still in flight. A permanent 1 here is a model that
         // silently 404'd or a manifest that never arrived.
         loading: !!(v && v.load && (v.load.state === 'loading' || v.load.state === 'idle')),

@@ -67,6 +67,18 @@ export function createRoster(playerName) {
 }
 
 /**
+ * Character ids that ship real animation clips.
+ *
+ * These are dealt to a slice of the roster so an actual match contains walkers.
+ * The PSX library the rest of the cast is drawn from is 45 distinct bodies, but
+ * every one of them is a static FBX with no clips, so they are all animated by
+ * the procedural rig - which slides rather than steps. A handful of properly
+ * animated bodies is what makes the island read as a game with people in it
+ * rather than a shooting range with mannequins.
+ */
+const ANIMATED = ['soldier_rigged', 'ual1_standard', 'miyazawa_fighter'];
+
+/**
  * Give the roster real bodies.
  *
  * The PSX library is 45 distinct rigged female characters at ~250 KB each, so
@@ -75,15 +87,23 @@ export function createRoster(playerName) {
  * bots rarely open with the same model) and a slice of the roster stays on the
  * procedural body as visual variety.
  *
+ * `animatedEvery` controls how often a bot is given a clip-driven model. Set it
+ * high to make the island mostly static bodies again.
+ *
  * Returns a promise so callers can await the manifest before building avatars.
  */
-export async function assignBotModels(bots, { proceduralEvery = 7 } = {}) {
+export async function assignBotModels(bots, { proceduralEvery = 7, animatedEvery = 3 } = {}) {
   const roster = await getPsxRoster();
-  if (!roster.length) return bots;
   const bag = [];
   bots.forEach((b, i) => {
     // Every Nth bot keeps the procedural body.
     if (i % proceduralEvery === proceduralEvery - 1) return;
+    // Every Nth of the rest gets a model with real animation clips.
+    if (animatedEvery > 0 && i % animatedEvery === 0) {
+      b.look.model = ANIMATED[(i / animatedEvery) % ANIMATED.length | 0];
+      return;
+    }
+    if (!roster.length) return;
     if (!bag.length) {
       // Refill with a shuffled copy so a long match still varies.
       const next = roster.slice();

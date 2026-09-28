@@ -658,6 +658,16 @@ if (failed.length) fail.push(`${failed.length} failed request(s) during the matc
     const withMesh = rows.filter((r) => r.meshes > 0);
     const visible = rows.filter((r) => r.visible);
     const rigged = rows.filter((r) => r.bones > 0);
+    // What is actually driving each body. A model can be rigged and still be
+    // animated procedurally, so "rigged" alone proves nothing is playing - the
+    // mixer's own resolved clips are the only proof.
+    const bySource = {};
+    for (const r of rows) {
+      const k = r.animSource || 'unknown';
+      bySource[k] = (bySource[k] || 0) + 1;
+    }
+    const clipModels = rows.filter((r) => r.animSource === 'clips')
+      .map((r) => ({ name: r.name, model: r.model, clips: r.clips }));
     const loading = rows.filter((r) => r.loading);
     // How far away is the nearest live opponent, and is it roughly at eye level?
     let nearest = null;
@@ -672,12 +682,18 @@ if (failed.length) fail.push(`${failed.length} failed request(s) during the matc
       visible: visible.length,
       rigged: rigged.length,
       stillLoading: loading.length,
+      bySource,
+      clipModels,
       sample: rows.slice(0, 2),
       nearestToPlayer: nearest ? { name: nearest.name, dist: +nearest.d.toFixed(1), state: nearest.state, dy: +(nearest.y - p.pos.y).toFixed(1) } : null,
     };
   });
   console.log('\n--- other players ---');
   console.log(`cast: ${cast.total} actors | ${cast.live} live | ${cast.withMesh} have meshes | ${cast.visible} visible | ${cast.rigged} rigged | ${cast.stillLoading} still loading`);
+  console.log(`animation: ${JSON.stringify(cast.bySource)}`);
+  for (const c of cast.clipModels.slice(0, 3)) {
+    console.log(`  clip-driven: ${c.name} (${c.model}) -> ${JSON.stringify(c.clips)}`);
+  }
   if (cast.nearestToPlayer) {
     console.log(`nearest opponent: ${cast.nearestToPlayer.name} at ${cast.nearestToPlayer.dist}m (dy ${cast.nearestToPlayer.dy}m, state ${cast.nearestToPlayer.state})`);
   } else {

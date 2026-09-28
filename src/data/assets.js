@@ -37,6 +37,21 @@ export const CHARACTERS = {
   scifi_soldier: { id: 'scifi_soldier', name: 'Scifi Soldier', rarity: 'epic', url: '/assets/characters/SciFi_Waifu_Soldier.glb' },
   mai_maid: { id: 'mai_maid', name: 'Mai Maid', rarity: 'legendary', url: '/assets/characters/mai_maid_-bourin.glb' },
   miyazawa_idol: { id: 'miyazawa_idol', name: 'Miyazawa Idol', rarity: 'epic', url: '/assets/maps/miyazawa_blank_city.glb' },
+
+  // Models that ship real animation clips, from the sibling spooky-waifu
+  // project. These are the only cast members driven by an AnimationMixer rather
+  // than the procedural rig, so they are the ones that actually walk with a
+  // weight shift instead of sliding.
+  //
+  // soldier_rigged is the one to reach for first: 0.21 MB and 33 clips covering
+  // the whole game loop (idle, walk, sprint, jump, fall, crouch, sit, die,
+  // pick-up, three attack types, and holding poses). ual1_standard is the
+  // Universal Animation Library's full combat set - pistol shoot/reload/aim,
+  // sword combos, sprint, roll, swim - at 65 bones, and is the better fit for
+  // anyone who should look like they are fighting.
+  soldier_rigged: { id: 'soldier_rigged', name: 'Soldier', rarity: 'rare', url: '/assets/characters/animated/soldier_rigged.glb' },
+  ual1_standard: { id: 'ual1_standard', name: 'Combatant', rarity: 'epic', url: '/assets/characters/animated/ual1_standard.glb' },
+  miyazawa_fighter: { id: 'miyazawa_fighter', name: 'Miyazawa Fighter', rarity: 'epic', url: '/assets/characters/animated/miyazawa_fighter.glb' },
 };
 
 /** Weapon viewmodel GLBs (Styloo normal-version) per gun id. */

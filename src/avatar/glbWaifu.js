@@ -32,6 +32,10 @@ export function createGlbWaifu(look, detail = 'full') {
   let rig = null;
   const clips = {};
   let currentAction = null;
+  // True when this model has real animation clips driving it, in which case the
+  // procedural rig is suppressed. Both write the same bone transforms, so they
+  // cannot both run - see the load path for why clips win.
+  let useClips = false;
   let pose = 'idle';
   let time = 0;
   let spin = 0;
@@ -102,17 +106,30 @@ export function createGlbWaifu(look, detail = 'full') {
       placeholder.material.dispose();
       // Attach anything already requested while the model was in flight.
       if (pendingWeapon) attachWeapon(pendingWeapon);
-      // Real clips, when the asset has them, take over for idle/emote; the
-      // procedural rig keeps driving locomotion and gunfire either way.
+      // Real clips, when the asset ships them, are the best animation available
+      // and they take priority over the procedural rig - a hand-authored walk
+      // cycle always looks better than bone rotations synthesised from a
+      // velocity. See `useClips` below for how the two are arbitrated.
       if (source.animations && source.animations.length) {
         mixer = new THREE.AnimationMixer(scene);
         for (const clip of source.animations) {
           const n = (clip.name || '').toLowerCase();
-          if (!clips.idle && /idle|stand/.test(n)) clips.idle = clip;
-          else if (!clips.walk && /walk/.test(n)) clips.walk = clip;
-          else if (!clips.run && /run/.test(n)) clips.run = clip;
+          if (!clips.idle && /(idle|stand|standby)/.test(n)) clips.idle = clip;
+          else if (!clips.walk && /(walk)/.test(n)) clips.walk = clip;
+          else if (!clips.run && /(run|sprint|jog)/.test(n)) clips.run = clip;
+          else if (!clips.jump && /(jump|fall)/.test(n)) clips.jump = clip;
+          else if (!clips.crouch && /crouch/.test(n)) clips.crouch = clip;
+          else if (!clips.die && /(die|death|dead)/.test(n)) clips.die = clip;
+          else if (!clips.pickup && /(pick.?up|pickup)/.test(n)) clips.pickup = clip;
+          // Locomotion, kept for the reference doc but not driven: the speeds
+          // here are authored for a different skeleton and stretch badly.
         }
-        if (clips.idle) playClip('idle');
+        // The rig and the mixer both write bone transforms, so only one may
+        // drive a frame. Real clips win whenever the asset actually has them;
+        // the rig stays as the fallback for a rigged model with no clips, and
+        // for every static one.
+        useClips = !!(clips.idle || clips.walk || clips.run);
+        if (useClips && clips.idle) playClip('idle');
       }
       load.state = 'ready';
       load.progress = 1;
@@ -180,10 +197,16 @@ export function createGlbWaifu(look, detail = 'full') {
     const speed = ctx.speed || 0;
     const posing = pose && pose !== 'idle' && pose !== 'walk' && pose !== 'run';
 
-    // A rigged model gets real skeletal animation. It owns the bones outright,
-    // so any clip mixer is suppressed while a rig is present — otherwise the two
-    // would fight over the same transforms every frame.
-    if (rig) {
+    // A rigged model gets real skeletal animation, and the procedural rig and a
+    // clip mixer both write the same bone transforms - they cannot both drive a
+    // frame or they fight over every joint. A hand-authored clip is always the
+    // better animation, so clips win whenever the asset ships them; the rig is
+    // the fallback for a rigged model with no clips.
+    //
+    // This ordering used to be `if (rig)`, and `createRig` succeeds on any
+    // skinned model - so the mixer was unreachable and real clips never played,
+    // no matter what the GLB contained.
+    if (rig && !useClips) {
       rig.update(dt, {
         speed,
         crouch: !!ctx.crouch,
@@ -296,6 +319,25 @@ export function createGlbWaifu(look, detail = 'full') {
     isGlb: true,
     /** True when the model has a skeleton we drive procedurally. */
     get rigged() { return !!rig; },
+    /**
+     * What is actually animating this model right now.
+     *
+     * "clips" means an AnimationMixer is driving real authored animation;
+     * "rig" means the procedural bone rig is; "none" is a static model with a
+     * hand-authored bob. Worth exposing because the two are easy to confuse: a
+     * model can be rigged and still be animating procedurally, and reading
+     * `rigged` alone makes a GLB that ships 33 unused animation clips look
+     * identical to one that is being played.
+     */
+    get animSource() {
+      if (useClips && mixer) return 'clips';
+      if (rig) return 'rig';
+      return model ? 'none' : 'placeholder';
+    },
+    /** The clips this model resolved, by role. Empty when it ships none. */
+    get clipNames() {
+      return Object.fromEntries(Object.entries(clips).map(([k, v]) => [k, v && v.name]));
+    },
     /** Fire the weapon on the next update — drives the aim + recoil pose. */
     fire() { fireFlag = true; },
     /** React to being hit on the next update. */
