@@ -81,3 +81,14 @@ he_rig.txt
 character design/
 weapons/
 
+# The Japanese environment library: 430 MB of source art, of which the game
+# loads an 87 MB curated subset that IS tracked (public/assets/env/). The rest
+# is six pieces too large to ship at all -- see `npm run probe:env` for the list
+# and the reason, which is always uncompressed embedded textures or raw-scan
+# geometry. Kept out of git on purpose: the repository already carries 740 MB of
+# LFS objects against GitHub's 1 GB free storage, so a blanket `git add -A` here
+# exceeds the quota and breaks LFS for everyone cloning afterwards. Force-add it
+# with `git add -f "environment assets"` once there is a data pack to spend, or
+# leave it -- it is art source, not something the build needs.
+environment assets/
+
