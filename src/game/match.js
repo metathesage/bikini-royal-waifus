@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { buildSakura } from '../world/sakura.js';
 import { buildWorld, busPosition, heightAt, ISLAND_R, SEA_Y } from '../world/map.js';
 import { buildGraybox } from '../world/graybox.js';
 import { createWaifu } from '../avatar/waifu.js';
@@ -431,7 +432,9 @@ let ufoDepart = -1;
     if (built) return 1;
     if (buildIndex === 0) {
       buildStart = performance.now();
-      world = map === 'graybox' ? buildGraybox(scene, 11, renderer) : buildWorld(scene, 11, renderer);
+      world = map === 'graybox' ? buildGraybox(scene, 11, renderer)
+        : map === 'classic' ? buildWorld(scene, 11, renderer)
+        : buildSakura(scene, 11, renderer);
       // The island has a lobby deck that needs a floor to stand on; the graybox
       // is all ground level and has no lobby at all.
       if (world.lobby && world.lobby.userData.box) world.boxes.push(world.lobby.userData.box);

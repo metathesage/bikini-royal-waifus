@@ -1,5 +1,14 @@
 import * as THREE from 'three';
-import { POIS } from '../data/catalog.js';
+// The classic island keeps its own landmark list; the catalog's POIS now
+// describe the default map (Sakura Isle).
+const POIS = [
+  { id: 'downtown', name: 'Downtown', x: 0, z: 0, color: '#b388ff' },
+  { id: 'pool', name: 'Lagoon', x: -40, z: 2, color: '#3dffa6' },
+  { id: 'bazaar', name: 'Night Market', x: 6, z: 40, color: '#ff5ea8' },
+  { id: 'grove', name: 'Neon Grove', x: 38, z: 12, color: '#39ffd2' },
+  { id: 'rooftops', name: 'Skyline', x: 30, z: -24, color: '#67d4ff' },
+  { id: 'crater', name: 'Heartfall', x: -34, z: 26, color: '#ff4d7a' },
+];
 import { makeBox } from '../game/collision.js';
 import {
   MAP_DECOR_GLB, MODULAR_FBX, PROP_GLB, GRAVEYARD_OBJ, CITY_GLB, ITEM_GLB, ITEM_LID_PART,
@@ -1464,3 +1473,6 @@ export function busPosition(u) {
   const y = 54 + Math.sin(u * Math.PI) * 7;
   return { x, y, z };
 }
+
+/** Shared with the other island builders (world/sakura.js). */
+export { createKit, buildUfo, buildLobby, mulberry, gradient, smoothstep, radialDisc };

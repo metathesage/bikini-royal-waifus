@@ -382,10 +382,10 @@ export const BOT_NAMES = [
 ];
 
 export const POIS = [
-  { id: 'downtown', name: 'Downtown', x: 0, z: 0, color: '#b388ff' },
-  { id: 'pool', name: 'Lagoon', x: -40, z: 2, color: '#3dffa6' },
-  { id: 'bazaar', name: 'Night Market', x: 6, z: 40, color: '#ff5ea8' },
-  { id: 'grove', name: 'Neon Grove', x: 38, z: 12, color: '#39ffd2' },
-  { id: 'rooftops', name: 'Skyline', x: 30, z: -24, color: '#67d4ff' },
-  { id: 'crater', name: 'Heartfall', x: -34, z: 26, color: '#ff4d7a' },
+  { id: 'plaza', name: 'Sunset Plaza', x: 0, z: 2, color: '#ffb35e' },
+  { id: 'village', name: 'Sakura Village', x: -36, z: -28, color: '#ff8fc4' },
+  { id: 'temple', name: 'Celestial Temple', x: 0, z: -44, color: '#ffe08a' },
+  { id: 'caverns', name: 'Crystal Caverns', x: 36, z: -30, color: '#9b7bff' },
+  { id: 'gardens', name: 'Statue Gardens', x: -32, z: 32, color: '#e8e2f0' },
+  { id: 'oasis', name: 'Alien Oasis', x: 32, z: 36, color: '#4dffd8' },
 ];
