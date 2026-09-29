@@ -793,6 +793,41 @@ input::placeholder { color: var(--chrome-4); }
   position: absolute; top: var(--safe-t); left: var(--safe-l); right: var(--safe-r);
   display: flex; justify-content: space-between; gap: 0.8rem; align-items: flex-start;
 }
+
+/* God-mode banner.
+   Deliberately loud and deliberately not subtle: it is a cheat, it persists
+   across the whole match, and the point is that nobody can look at a
+   screenshot of a playtest and mistake it for a damage-balance result. */
+.godmode {
+  position: absolute;
+  top: calc(var(--safe-t) + 2.1rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  padding: 0.14rem 0.7rem;
+  font-size: 0.6rem;
+  letter-spacing: 0.34em;
+  font-weight: 700;
+  color: #0a0510;
+  background: var(--gold, #ffc46b);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), 0 0 18px rgba(255, 196, 107, 0.55);
+  pointer-events: none;
+  animation: godpulse 1.6s ease-in-out infinite;
+}
+.godmode[hidden] { display: none; }
+@keyframes godpulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+/* The settings row is a cheat, not a preference, and says so. */
+.check.cheat { color: var(--gold, #ffc46b); }
+.check.cheat em {
+  font-style: normal;
+  opacity: 0.7;
+  font-size: 0.85em;
+  letter-spacing: 0.12em;
+}
 /* Counters are cut tags with a kana prefix, so the two numbers that matter
    can be found without reading them. */
 .alive, .zone {
@@ -1576,3 +1611,363 @@ body.touch-on .hud.is-open .touch { display: block; }
   body.touch-on .cross { width: 28px; height: 28px; }
   body.touch-on .cross.shot { width: 44px; height: 44px; }
 }
+
+/* ---------------------------------------------------------------- bag ----
+   The loadout screen. Full-bleed dim rather than a modal card in the middle:
+   at 1280x720 a centred card leaves enough room around it that the player can
+   still see a bot walking up behind them, and then they die wondering why they
+   paused the game. Opaque enough to read, dim enough to stay aware. */
+.bag {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 8, 16, 0.82);
+  backdrop-filter: blur(6px);
+  animation: bag-in 0.12s ease-out;
+}
+.bag[hidden] { display: none; }
+
+@keyframes bag-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.bag-panel {
+  width: min(760px, 92vw);
+  max-height: 86vh;
+  overflow: auto;
+  padding: 20px 22px 18px;
+  border: 1px solid rgba(196, 107, 255, 0.35);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(20, 18, 34, 0.97), rgba(12, 12, 24, 0.97));
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.bag-panel header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.bag-panel h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: #e9d9ff;
+}
+.bag-count {
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  color: #8d86a8;
+  font-variant-numeric: tabular-nums;
+}
+.bag-count.full { color: #ff6b8a; }
+
+.bag-body {
+  display: grid;
+  grid-template-columns: 1fr 250px;
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 620px) {
+  .bag-body { grid-template-columns: 1fr; }
+}
+
+/* Three columns, two rows: a six-slot bag reads as a grid rather than a queue,
+   which is what makes "which two of these do I drop" answerable at a glance. */
+.bag-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.bag-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 84px;
+  padding: 10px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #d8d4e6;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.1s, background 0.1s, transform 0.08s;
+}
+.bag-slot:hover { background: rgba(255, 255, 255, 0.07); }
+.bag-slot.empty { cursor: default; opacity: 0.4; }
+.bag-slot.empty::after { content: 'empty'; font-size: 0.68rem; letter-spacing: 0.14em; }
+
+/* Rarity drives the border, matching the locker's rarity colours so the bag
+   and the wardrobe read as one visual language. */
+.bag-slot[data-rarity="common"] { border-color: rgba(213, 216, 230, 0.28); }
+.bag-slot[data-rarity="rare"] { border-color: rgba(62, 197, 255, 0.5); }
+.bag-slot[data-rarity="epic"] { border-color: rgba(196, 107, 255, 0.55); }
+.bag-slot[data-rarity="legendary"] { border-color: rgba(255, 176, 32, 0.6); }
+.bag-slot[data-rarity="mythic"] { border-color: rgba(125, 255, 240, 0.7); }
+
+.bag-slot.on {
+  background: rgba(196, 107, 255, 0.16);
+  border-color: #c46bff;
+  box-shadow: 0 0 0 1px rgba(196, 107, 255, 0.5), 0 0 18px rgba(196, 107, 255, 0.25);
+  transform: translateY(-2px);
+}
+.bag-slot.drop-target { border-color: #7dfff0; background: rgba(125, 255, 240, 0.12); }
+.bag-slot.dragging { opacity: 0.4; }
+
+.bag-slot .name { font-size: 0.78rem; line-height: 1.15; }
+.bag-slot .kind {
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #8d86a8;
+}
+.bag-slot .count {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.bag-side { display: flex; flex-direction: column; gap: 12px; }
+.bag-detail { min-height: 96px; font-size: 0.84rem; line-height: 1.45; color: #cfc9e0; }
+.bag-detail .bag-empty { margin: 0; color: #6f6889; font-style: italic; }
+.bag-detail h4 { margin: 0 0 2px; font-size: 0.95rem; }
+.bag-detail .rarity { font-size: 0.64rem; letter-spacing: 0.2em; text-transform: uppercase; }
+.bag-detail .effect { margin: 6px 0 0; color: #9fe8c8; }
+
+.bag-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.bag-actions button {
+  flex: 1 1 auto;
+  min-width: 74px;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #e9e4f5;
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.bag-actions button:hover { background: rgba(196, 107, 255, 0.22); border-color: #c46bff; }
+.bag-actions button:disabled { opacity: 0.35; cursor: default; }
+.bag-actions button:disabled:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.16); }
+.bag-actions kbd { font-size: 0.62rem; opacity: 0.6; }
+
+.bag-hint { margin: 0; font-size: 0.68rem; line-height: 1.7; color: #6f6889; }
+.bag-hint kbd { margin: 0 1px; }
+
+/* Hotbar empty pips. Dashes rather than blank boxes so a half-full bag reads
+   as "4 of 6" at a glance, and the hint is styled apart from real items so it
+   is never mistaken for a pickup the player already has. */
+#hotbar b.empty {
+  opacity: 0.32;
+  font-weight: 400;
+  min-width: 14px;
+  text-align: center;
+}
+#hotbar b.hint {
+  opacity: 0.45;
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* ------------------------------------------------------------ countdown ----
+   The pre-launch hold. Huge, centred, and it punches in on each number rather
+   than fading: a countdown you can half-read is not a countdown. Each digit
+   animates from 1.6 scale down to 1 with a hard opacity stop, so the previous
+   number is gone before the next arrives instead of ghosting through it. */
+.countdown {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  font-size: 8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fff;
+  text-shadow: 0 0 40px rgba(196, 107, 255, 0.9), 0 6px 30px rgba(0, 0, 0, 0.7);
+}
+.countdown[hidden] { display: none; }
+.countdown span { display: block; animation: count-pop 1s ease-out; }
+
+@keyframes count-pop {
+  0% { transform: scale(1.6); opacity: 0; }
+  14% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.95; }
+}
+
+/* Cut to the flyover: two bars that close in from the top and bottom. Cheap,
+   and it reads as a camera change rather than as a loading screen. */
+.letterbox[hidden] { display: none; }
+.letterbox {
+  position: absolute;
+  inset: 0;
+  z-index: 29;
+  pointer-events: none;
+}
+.letterbox i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 11vh;
+  background: #000;
+  animation: bar-in 0.5s ease-out forwards;
+}
+.letterbox i:first-child { top: 0; }
+.letterbox i:last-child { bottom: 0; }
+
+@keyframes bar-in {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+/* ------------------------------------------------------------- loadout ----
+   The HUD strip. Was a row of bare text names, which answered "what does this
+   thing do" only by making the player read the word. Icons carry the category
+   -- cross for a heal, shield for a barrier, grenade, blade, gun -- so the
+   answer is pre-attentive, and the name is the fallback rather than the only
+   channel. Rarity still drives the border, matching the bag. */
+#hotbar {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: 62vw;
+}
+
+#hotbar .slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 74px;
+  max-width: 108px;
+  padding: 6px 8px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(10, 10, 20, 0.62);
+  backdrop-filter: blur(3px);
+  color: #ddd6ea;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.6rem;
+  line-height: 1.1;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s, transform 0.08s;
+}
+#hotbar .slot:hover { background: rgba(196, 107, 255, 0.18); }
+#hotbar .slot em {
+  font-style: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+#hotbar .slot[data-rarity="rare"] { border-color: rgba(62, 197, 255, 0.55); }
+#hotbar .slot[data-rarity="epic"] { border-color: rgba(196, 107, 255, 0.6); }
+#hotbar .slot[data-rarity="legendary"] { border-color: rgba(255, 176, 32, 0.65); }
+#hotbar .slot[data-rarity="mythic"] { border-color: rgba(125, 255, 240, 0.75); }
+
+#hotbar .slot.empty {
+  opacity: 0.3;
+  cursor: default;
+  min-width: 46px;
+}
+#hotbar .slot.empty:hover { background: rgba(10, 10, 20, 0.62); }
+
+/* The one that is actually in your hands. Bright enough to find without
+   hunting, and the only slot allowed to scale, so peripheral vision catches it. */
+#hotbar .slot.on {
+  background: rgba(196, 107, 255, 0.22);
+  border-color: #c46bff;
+  box-shadow: 0 0 14px rgba(196, 107, 255, 0.35);
+  transform: translateY(-2px);
+}
+/* Inside the slot, not floating above it. At top:-7px the badge sat outside the
+   slot box, and the hotbar's own overflow clipped it -- so the one slot marked
+   as in-hand showed no badge at all, which is the exact information the tag
+   exists to carry. */
+#hotbar .slot .equipped {
+  position: absolute;
+  bottom: 1px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 4px;
+  border-radius: 3px;
+  background: #c46bff;
+  color: #120a1c;
+  font-size: 0.46rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
+#hotbar .slot .ico-svg { display: block; width: 22px; height: 22px; }
+#hotbar .slot .ico-svg svg { width: 100%; height: 100%; display: block; }
+/* Icon colour follows rarity, so a legendary shield reads gold without a word. */
+#hotbar .slot[data-rarity="rare"] .ico-svg { color: #3ec5ff; }
+#hotbar .slot[data-rarity="epic"] .ico-svg { color: #c46bff; }
+#hotbar .slot[data-rarity="legendary"] .ico-svg { color: #ffb020; }
+#hotbar .slot[data-rarity="mythic"] .ico-svg { color: #7dfff0; }
+#hotbar .slot .ico-svg { color: #d5d8e6; }
+
+#hotbar .slot .count {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+#hotbar .slot .mag {
+  font-size: 0.52rem;
+  font-weight: 700;
+  color: #9a93b5;
+  font-variant-numeric: tabular-nums;
+}
+#hotbar .slot.on .mag { color: #e9d9ff; }
+
+#hotbar .hot-sep {
+  width: 1px;
+  align-self: stretch;
+  margin: 2px 4px;
+  border: 0;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+}
+
+/* Bag slot art. Same per-thing icons as the HUD, at a size you can actually
+   tell apart -- the HUD glyph is 22px because it has a name under it, so the
+   bag can afford to be larger and rely on the silhouette alone. */
+.bag-slot .ico-svg {
+  display: block;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 2px;
+}
+.bag-slot .ico-svg svg { width: 100%; height: 100%; display: block; }
+.bag-slot[data-rarity="rare"] .ico-svg { color: #3ec5ff; }
+.bag-slot[data-rarity="epic"] .ico-svg { color: #c46bff; }
+.bag-slot[data-rarity="legendary"] .ico-svg { color: #ffb020; }
+.bag-slot[data-rarity="mythic"] .ico-svg { color: #7dfff0; }
+.bag-slot .ico-svg { color: #d8d4e6; }
+.bag-slot.on .ico-svg { filter: drop-shadow(0 0 6px rgba(196, 107, 255, 0.8)); }

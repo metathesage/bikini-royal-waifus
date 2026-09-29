@@ -72,14 +72,37 @@ export function pushOut(x, z, radius, feet, head, boxes) {
   return { x, z };
 }
 
-export function floorAt(x, z, radius, boxes, terrainY) {
+/**
+ * The floor under a point, ignoring anything the player could not be standing on.
+ *
+ * `feetY` is the caller's current foot height. Without it this function returns
+ * the single highest box top anywhere under the point, which is wrong in both
+ * directions on any map with verticality:
+ *
+ *   - walking under a balcony, an awning, or the lobby deck 48 m up snapped the
+ *     player up onto that roof, because the roof was "the highest floor here";
+ *   - stepping off a roof next to a taller box yanked the player sideways/down
+ *     into it, since the ground was recomputed as something they were already
+ *     below.
+ *
+ * Neither is a collision bug at the box, it is a missing question: could this
+ * surface be where I am standing? A surface only counts if its top is at or
+ * just above the feet -- i.e. within a normal step-up. Anything higher is a
+ * ceiling, not a floor, and is left to `pushOut` to resolve horizontally.
+ *
+ * Terrain is always eligible, because you can never be legitimately under it.
+ */
+export const STEP_UP = 0.62;
+
+export function floorAt(x, z, radius, boxes, terrainY, feetY = null) {
   let y = terrainY;
   const inset = radius * 0.25;
+  const reach = feetY == null ? Infinity : feetY + STEP_UP;
   for (let n = 0; n < boxes.length; n++) {
     const b = boxes[n];
-    if (x > b.minX - inset && x < b.maxX + inset && z > b.minZ - inset && z < b.maxZ + inset) {
-      if (b.maxY > y) y = b.maxY;
-    }
+    if (x <= b.minX - inset || x >= b.maxX + inset || z <= b.minZ - inset || z >= b.maxZ + inset) continue;
+    if (b.maxY > reach) continue;
+    if (b.maxY > y) y = b.maxY;
   }
   return y;
 }

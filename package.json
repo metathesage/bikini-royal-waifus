@@ -8,11 +8,14 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "vite",
-    "test": "node test/frame.test.mjs && node test/kit.test.mjs && node test/rig.test.mjs && node test/candidates.test.mjs && node test/smoke.mjs",
+    "test": "node test/frame.test.mjs && node test/kit.test.mjs && node test/rig.test.mjs && node test/inventory.test.mjs && node test/candidates.test.mjs && node test/smoke.mjs && node tools/probe-sakura.mjs && node tools/probe-dress.mjs",
     "test:assets": "node tools/probe-nan.mjs",
+    "probe:env": "node tools/probe-env.mjs \"environment assets\"",
+    "probe:dress": "node tools/probe-dress.mjs",
     "probe:recoil": "node tools/probe-recoil.mjs",
     "probe:island": "node tools/probe-island.mjs",
-    "probe:gameplay": "node tools/probe-gameplay.mjs"
+    "probe:gameplay": "node tools/probe-gameplay.mjs",
+    "probe:bag": "node tools/probe-bag.mjs"
   },
   "dependencies": {
     "three": "0.170.0"

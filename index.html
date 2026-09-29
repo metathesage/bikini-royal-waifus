@@ -40,7 +40,7 @@
             <path d="M4 30h56M8 30 4 6l15 11L32 2l13 15L60 6l-4 24" />
             <circle cx="4" cy="6" r="3" /><circle cx="32" cy="2" r="3" /><circle cx="60" cy="6" r="3" />
           </svg>
-          <p class="eyebrow">Sunset district · 22 squads · one bikini</p>
+          <p class="eyebrow">Sunset district   22 squads   one bikini</p>
           <h1 class="wordmark">
             <span class="ln a">Bikini Royal</span>
             <span class="ln b">Waifus</span>
@@ -53,7 +53,7 @@
           </span>
           <span>Play</span>
         </button>
-        <p class="fine">Click or press <b>A</b> · Prototype · bots, not online · Xbox layout + mouse</p>
+        <p class="fine">Click or press <b>A</b>   Prototype   bots, not online   Xbox layout + mouse</p>
       </div>
     </section>
 
@@ -81,7 +81,7 @@
             <path d="M4 30h56M8 30 4 6l15 11L32 2l13 15L60 6l-4 24" />
             <circle cx="4" cy="6" r="3" /><circle cx="32" cy="2" r="3" /><circle cx="60" cy="6" r="3" />
           </svg>
-          <p class="eyebrow">Duo drop · 8 minute storm</p>
+          <p class="eyebrow">Duo drop   8 minute storm</p>
           <h1 class="wordmark">
             <span class="ln a">Bikini Royal</span>
             <span class="ln b">Waifus</span>
@@ -125,7 +125,7 @@
             <span>Settings</span>
           </button>
         </div>
-        <p class="fine">Prototype · bots, not online · Xbox layout + mouse</p>
+        <p class="fine">Prototype   bots, not online   Xbox layout + mouse</p>
       </div>
     </section>
 
@@ -172,7 +172,7 @@
           <button class="btn tiny" data-nav data-action="focus" data-part="jewelry">Jewelry</button>
           <button class="btn tiny" data-nav data-action="focus" data-part="full">Full</button>
         </div>
-        <p class="fine">Drag to orbit · stick look · scroll / stick zoom</p>
+        <p class="fine">Drag to orbit   stick look   scroll / stick zoom</p>
       </div>
     </section>
 
@@ -203,6 +203,10 @@
           <label class="check"><input id="set-assist" type="checkbox" /> Gamepad aim assist</label>
           <label class="check"><input id="set-shake" type="checkbox" /> Screen shake</label>
           <label class="check"><input id="set-touch" type="checkbox" /> Touch controls</label>
+          <!-- Cheat, not a preference. It is off by default, it persists, and the
+               HUD shouts about it the whole match so it cannot be left on by
+               accident and mistaken for a difficulty setting. -->
+          <label class="check cheat"><input id="set-god" type="checkbox" /> God mode <em>(cheat)</em></label>
         </div>
         <div class="panel">
           <h3>Keyboard</h3>
@@ -210,10 +214,10 @@
           <h3>Xbox</h3>
           <ul class="pad-map">
             <li>Move / look — sticks</li>
-            <li>LT aim · RT fire · A jump · B crouch/slide</li>
-            <li>X reload & interact · Y swap · LB melee · RB dash</li>
-            <li>D-pad up/down items · left emote · right use item</li>
-            <li>View inspect · Menu pause</li>
+            <li>LT aim   RT fire   A jump   B crouch/slide</li>
+            <li>X reload & interact   Y swap   LB melee   RB dash</li>
+            <li>D-pad up/down items   left emote   right use item</li>
+            <li>View inspect   Menu pause</li>
           </ul>
         </div>
       </div>
@@ -229,6 +233,7 @@
     </section>
 
     <section class="hud" data-screen="game">
+      <div class="godmode" id="godmode" hidden>GOD MODE</div>
       <div class="hud-top">
         <div class="alive" id="alive">44 alive</div>
         <div class="compass" id="compass"></div>
@@ -244,9 +249,48 @@
       <div class="vignette" id="vignette"></div>
       <div class="dmg" id="dmg"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="prompt" id="prompt"></div>
+      <!-- Launch countdown. Driven from snap.countdown, which is only non-zero
+           while the ship is holding on the pad, so it cannot fire during play. -->
+      <div class="countdown" id="countdown" hidden><span></span></div>
+      <div class="letterbox" id="letterbox" hidden><i></i><i></i></div>
       <div class="channel" id="channel"><span></span></div>
       <div class="buffs" id="buffs"></div>
       <div class="partner" id="partner"></div>
+
+      <!--
+        The bag. Opens on Tab / Back-Select, and freezes the match while it is
+        up: this is a loadout screen, not a radial menu, so the player needs to
+        be able to read a blurb and pick a slot without a bot executing them.
+
+        Slots are rendered by shell.js from the match snapshot, so this element
+        stays empty in the markup on purpose -- writing six placeholder slots
+        here would just be six elements the first render has to throw away.
+      -->
+      <div class="bag" id="bag" hidden aria-hidden="true">
+        <div class="bag-panel">
+          <header>
+            <h3>Loadout</h3>
+            <span class="bag-count" id="bag-count">0/6</span>
+          </header>
+          <div class="bag-body">
+            <div class="bag-grid" id="bag-grid" role="listbox" aria-label="Inventory slots"></div>
+            <div class="bag-side">
+              <div class="bag-detail" id="bag-detail">
+                <p class="bag-empty">Nothing selected.</p>
+              </div>
+              <div class="bag-actions">
+                <button type="button" id="bag-use" disabled>Use <kbd>C</kbd></button>
+                <button type="button" id="bag-drop" disabled>Drop <kbd>G</kbd></button>
+                <button type="button" id="bag-sort" disabled>Sort</button>
+              </div>
+              <p class="bag-hint">
+                <kbd>Tab</kbd> close &middot; <kbd>&larr;</kbd><kbd>&rarr;</kbd> pick slot
+                &middot; <kbd>Enter</kbd> use &middot; drag to reorder
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="hud-bottom">
         <div class="bars">
           <div class="bar-row"><span class="ico heart"></span><div class="track hp"><span id="hp"></span></div><b id="hp-n">100</b></div>
@@ -282,7 +326,7 @@
         <button class="btn" data-nav data-action="viewer">View Waifu</button>
         <button class="btn" data-nav data-action="settings">Settings</button>
         <button class="btn" data-nav data-action="menu">Quit to menu</button>
-        <p class="fine">WASD move · mouse look · shift sprint · ctrl slide · space jump · E interact · R reload · Q melee · Z decree · F dash · C item · V inspect · 1/2/3 weapons</p>
+        <p class="fine">WASD move   mouse look   shift sprint   ctrl slide   space jump   E interact   R reload   Q melee   Z decree   F dash   C item   V inspect   1/2/3 weapons</p>
       </div>
     </section>
 

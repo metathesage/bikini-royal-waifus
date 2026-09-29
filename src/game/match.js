@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { buildWorld, busPosition, heightAt, ISLAND_R, SEA_Y } from '../world/map.js';
+import { buildSakuraIsle } from '../world/sakuraIsle.js';
 import { buildGraybox } from '../world/graybox.js';
 import { createWaifu } from '../avatar/waifu.js';
 import { createViewmodel, createWeaponMesh } from '../avatar/viewmodel.js';
@@ -11,6 +12,10 @@ import {
   GUNS, MELEE, ITEMS, CRYSTALS, AMMO, PICK_HEALS,
   falloffDamage, meleeById,
 } from './weapons.js';
+import {
+  createInventory, resetInventory, addItem, removeAt, removeId,
+  swapSlots, sortInventory, mergeStacks, stepSelection, occupied,
+} from './inventory.js';
 import { POIS, rollLook } from '../data/catalog.js';
 import { candidateById, abilityTint } from '../data/candidates.js';
 import { WEAPON_GLB, MODULAR_FBX, ITEM_GLB, loadGltf, loadFbx, instanceOf, fitToFootprint } from '../data/assets.js';
@@ -29,6 +34,17 @@ const ZONE_PLAN = [
 const ZONE_DPS = [1, 2, 5, 9, 16];
 const LOBBY_TIME = 18;
 const BUS_TIME = 42;
+/**
+ * Hold on the ship, all together, while this counts down before the route runs.
+ *
+ * A separate clock from the flight rather than a lead-in to it, because the two
+ * need different rules. During the hold the player is parked on the deck and
+ * may not leave, and the ship has to sit still, so that "everyone is on the
+ * ship" is a thing you can actually see. Folding the countdown into clock.bus
+ * meant the ship began crawling before the number reached one, which read as a
+ * stutter rather than as a launch.
+ */
+const INTRO_TIME = 10;
 /** Minimum seconds between directional hit indicators, so sustained fire pulses. */
 const HURT_FX_MIN_GAP = 0.13;
 /** How long the loading bar waits on environment dressing before moving on. */
@@ -246,7 +262,7 @@ export function createMatch({ getSettings, audio, getLook, renderer = null, map 
     active: 2,
     meleeId: 'katana',
     ammo: { light: 0, medium: 0, heavy: 0, shells: 0 },
-    items: [],
+    inv: createInventory(),
     itemIndex: 0,
     channel: null,
     reload: 0,
@@ -273,7 +289,7 @@ export function createMatch({ getSettings, audio, getLook, renderer = null, map 
    * opening circle is a different size from every later one.
    */
   const zone = { x: 6, z: -4, r: 125, from: 125, phase: 0, mode: 'wait', left: ZONE_PLAN[0].wait, dps: 0 };
-  const clock = { phase: 'boot', lobby: LOBBY_TIME, bus: 0, match: 0, end: null };
+  const clock = { phase: 'boot', lobby: LOBBY_TIME, intro: 0, lastCount: 0, bus: 0, match: 0, end: null };
 /** Seconds since the drop ship started leaving; negative while it is still docked. */
 let ufoDepart = -1;
   const orbit = { theta: 0.6, phi: 1.15, radius: 3.4 };
@@ -291,9 +307,10 @@ let ufoDepart = -1;
   const snap = {
     phase: 'boot', hp: 100, shield: 0, aliveCount: 44, kills: 0,
     prompt: null, items: [], buffs: [], dots: [], compass: [], labels: [],
+    invUsed: 0, invCap: 6,
     weaponName: 'Ribbon Katana', weaponKind: 'melee', mag: 0, reserve: 0, spread: 0,
     ads: false, knocked: false, gliding: false, low: false, scope: false,
-    zoneText: '', zoneDanger: false, channel: 0, match: 0, lobby: LOBBY_TIME,
+    zoneText: '', zoneDanger: false, channel: 0, match: 0, lobby: LOBBY_TIME, countdown: 0,
     partner: null, stats: null, result: null, bus: 0, ability: null,
   };
 
@@ -431,7 +448,9 @@ let ufoDepart = -1;
     if (built) return 1;
     if (buildIndex === 0) {
       buildStart = performance.now();
-      world = map === 'graybox' ? buildGraybox(scene, 11, renderer) : buildWorld(scene, 11, renderer);
+      world = map === 'graybox' ? buildGraybox(scene, 11, renderer)
+        : map === 'sakura' ? buildSakuraIsle(scene, 11, renderer)
+          : buildWorld(scene, 11, renderer);
       // The island has a lobby deck that needs a floor to stand on; the graybox
       // is all ground level and has no lobby at all.
       if (world.lobby && world.lobby.userData.box) world.boxes.push(world.lobby.userData.box);
@@ -448,7 +467,7 @@ let ufoDepart = -1;
     // Environment assets stream in over the network, so report their real
     // progress rather than pretending the island is already dressed. The
     // island is fully playable on its procedural geometry alone, so we only
-    // wait briefly ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â after that the kit keeps landing during the match and a
+    // wait briefly — after that the kit keeps landing during the match and a
     // slow or failed download can never trap the player on the loading screen.
     if (buildIndex === 1) {
       worldProgress = world.progress();
@@ -486,7 +505,7 @@ let ufoDepart = -1;
       }
       clock.phase = 'lobby';
       placeLobby();
-      emit({ type: 'toast', text: 'Sky platform ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the drop ship is inbound.' });
+      emit({ type: 'toast', text: 'Sky platform — the drop ship is inbound.' });
       return 1;
     }
     return 1;
@@ -590,11 +609,19 @@ let ufoDepart = -1;
   }
 
   function addPickup(kind, id, x, y, z) {
+    // An anchor is allowed to omit `y`, meaning "on the ground here" -- and
+    // most of the island's floor anchors do exactly that. Reading it as
+    // `y + 0.55` without this fallback put those pickups at NaN: the marker
+    // was positioned somewhere no camera can see, and the distance test
+    // against it was NaN, so the pickup could never be collected. A gun that
+    // renders nowhere and cannot be picked up is worse than no gun, because
+    // the map looks like it has loot in it.
+    const groundY = y == null ? heightAt(x, z) : y;
     const color = kind === 'gun' ? 0xff4f9a : kind === 'crystal' ? new THREE.Color(CRYSTALS[id]?.color || '#fff').getHex() : kind === 'ammo' ? 0xffe566 : 0xb7f6ff;
     const mesh = new THREE.Group();
     const marker = new THREE.Mesh(new THREE.OctahedronGeometry(kind === 'gun' ? 0.32 : 0.22, 0), new THREE.MeshBasicMaterial({ color }));
     mesh.add(marker);
-    mesh.position.set(x, y + 0.55, z);
+    mesh.position.set(x, groundY + 0.55, z);
     scene.add(mesh);
     const url = pickupModelUrl(kind, id);
     if (url) {
@@ -614,7 +641,7 @@ let ufoDepart = -1;
         marker.visible = false;
       }).catch((e) => console.error('pickup model failed', url, e));
     }
-    pickups.push({ kind, id, x, y, z, mesh, taken: false, spin: Math.random() * 6 });
+    pickups.push({ kind, id, x, y: groundY, z, mesh, taken: false, spin: Math.random() * 6 });
   }
 
   function placeLobby() {
@@ -628,6 +655,8 @@ let ufoDepart = -1;
     player.gliding = false;
     clock.phase = 'lobby';
     clock.lobby = LOBBY_TIME;
+    clock.intro = 0;
+    clock.lastCount = 0;
     clock.bus = 0;
     clock.match = 0;
     result = null;
@@ -641,8 +670,7 @@ let ufoDepart = -1;
     player.active = 2;
     player.meleeId = look().melee || 'katana';
     player.ammo = { light: 0, medium: 0, heavy: 0, shells: 0 };
-    player.items = [];
-    player.itemIndex = 0;
+    resetInventory(player.inv);
     player.channel = null;
     player.kills = 0;
     player.shots = 0;
@@ -716,6 +744,53 @@ let ufoDepart = -1;
     emit({ type: 'toast', text: 'New drop. Same cute disaster.' });
   }
 
+  /**
+   * Refresh just the bag's fields on the shared snapshot.
+   *
+   * Split out of the update loop and called from `snapshot()` as well, because
+   * `snapshot()` hands back one long-lived object that the update loop
+   * refreshes in place. The bag pauses the match -- correctly, so a bot cannot
+   * execute you while you read a blurb -- and with the refresh living only
+   * inside update(), pausing froze the bag's data too. The screen then showed
+   * the *last pre-pause* contents: open the bag, drop a stack, and the slot you
+   * just emptied is still drawn full, because the snapshot it is rendering is
+   * from before the drop. Cost is six objects, and only when something reads it.
+   */
+  function syncInvSnapshot() {
+    snap.items = player.inv.slots.map((s, i) => (s ? {
+      index: i,
+      id: s.id,
+      count: s.count,
+      name: ITEMS[s.id]?.name || s.id,
+      kind: ITEMS[s.id]?.kind || 'item',
+      rarity: ITEMS[s.id]?.rarity || 'common',
+      blurb: ITEMS[s.id]?.blurb || '',
+      on: i === player.itemIndex,
+    } : { index: i, empty: true, on: i === player.itemIndex }));
+    snap.invUsed = occupied(player.inv);
+    snap.invCap = player.inv.capacity;
+    // The whole loadout, so the HUD can show what is equipped and not just
+    // what is carried. Reading the live `player` object from the shell would
+    // work and would also mean the UI's idea of the loadout could drift from
+    // the match's, with nothing to compare them.
+    snap.loadout = [
+      ...player.guns.map((g, i) => (g ? {
+        kind: 'gun', slot: i, on: player.active === i, id: g.id,
+        name: GUNS[g.id]?.name || g.id,
+        rarity: GUNS[g.id]?.rarity || 'common',
+        mag: g.mag, magSize: GUNS[g.id]?.mag || 0,
+        ammo: GUNS[g.id]?.ammo,
+        reserve: player.ammo[GUNS[g.id]?.ammo] || 0,
+      } : { kind: 'gun', slot: i, empty: true })),
+      {
+        kind: 'melee', slot: 2, on: player.active === 2,
+        id: player.meleeId,
+        name: MELEE[player.meleeId]?.name || 'Ribbon Katana',
+        rarity: MELEE[player.meleeId]?.rarity || 'common',
+      },
+    ];
+  }
+
   function update(dt, input) {
     if (!built) return;
     const settings = getSettings();
@@ -734,12 +809,177 @@ let ufoDepart = -1;
     else if (clock.phase === 'play') updatePlay(sim, input, settings);
     else if (clock.phase === 'end') updateEnd(sim, settings);
 
+    /*
+     * The world floor, applied once per frame after the phase has run, so it
+     * holds no matter which branch moved the player.
+     *
+     * Every individual mover -- the glide, the walk, the bus, the drop -- does
+     * its own ground query, and each one has its own idea of where the feet
+     * were. That is how a player ends up at y = -20 with the island under them:
+     * a path that integrates position and only then asks "is there ground",
+     * on a frame long enough that the answer is already no. Chasing that per
+     * branch means the next mover repeats it.
+     *
+     * Terrain is unconditionally a legal floor -- you cannot be legitimately
+     * under the ground -- so this can only ever return a player who has sunk
+     * through the world. One comparison when it does not fire, and the match
+     * cannot be lost to a single bad frame.
+     */
+    if (clock.phase === 'play' || clock.phase === 'bus' || clock.phase === 'end') {
+      const floor = heightAt(player.pos.x, player.pos.z);
+      if (Number.isFinite(floor) && player.pos.y < floor) {
+        player.pos.y = floor;
+        if (player.vel.y < 0) player.vel.y = 0;
+        player.gliding = false;
+        player.grounded = true;
+      }
+    }
+
     fx.update(dt);
     applyCamera(dt, input, settings);
     animateActors(dt, settings);
     fillSnap(settings);
   }
 
+
+  /**
+   * The map image: the real island, seen from directly above, drawn once.
+   *
+   * The HUD used to plot a handful of POI dots on a blank disc. That is a
+   * radar for a game that has an island in it -- it cannot tell you that a
+   * building is between you and the one you cannot see, which is the only
+   * question a map is asked during a fight. Fortnite's minimap is a real
+   * top-down render of the level, and that is what this is: one orthographic
+   * pass over the finished world, cached to a canvas, then cropped around the
+   * player each frame.
+   *
+   * Once, not per frame. Re-rendering the scene at 60fps to feed a 160px
+   * minimap would be the most expensive thing in the game by a wide margin,
+   * and the island does not move.
+   *
+   * Returns null when there is no renderer, so the HUD keeps working in the
+   * headless harness rather than throwing on a canvas it cannot fill.
+   */
+  let mapImage = null;
+  function buildMapImage(size = 1024) {
+    if (!renderer || !world || !scene) return null;
+    if (mapImage) return mapImage;
+    const R = ISLAND_R * 1.12;
+    const cam = new THREE.OrthographicCamera(-R, R, R, -R, 0.1, 400);
+    cam.position.set(0, 260, 0);
+    cam.up.set(0, 0, -1);
+    cam.lookAt(0, 0, 0);
+    cam.updateProjectionMatrix();
+
+    // Hide what is not the island, and hide the *sky* only.
+    //
+    // The previous version also hid `o.isLight`, on the reasoning that lights
+    // are not geometry. They are exactly what geometry needs: every surface here
+    // is a toon or Lambert material, so with the sun and the hemisphere switched
+    // off the entire overhead pass renders unlit -- a near-black disc with a few
+    // grey slabs floating in it. That is the "dark and flat" minimap, and it
+    // survived a build because an unlit render still draws geometry, so it looks
+    // like a successful pass rather than a failure.
+    //
+    // The sky dome *is* hidden, because it is a 400-unit sphere the ortho camera
+    // sits inside: left visible it fills the frame and no island is ever seen.
+    //
+    // Enumerated as direct children of the scene rather than a traverse over a
+    // deny-list. The deny-list had to name every transient thing that must not be
+    // baked in -- the ship, the lobby deck, the bots -- and it had already missed
+    // one, which is how a grey slab ended up sitting in the middle of the map.
+    // Anything that is not explicitly the island is now excluded by default, so
+    // the next thing added to the scene cannot silently join the artwork.
+    const hidden = [];
+    const hide = (o) => {
+      if (o && o.visible) { hidden.push(o); o.visible = false; }
+    };
+    for (const child of scene.children) {
+      if (child === world.group) continue;   // the island itself
+      if (child.isLight) continue;          // lights stay ON
+      hide(child);
+    }
+    for (const b of bots) if (b.avatar && b.avatar.group) hide(b.avatar.group);
+    // The storm wall is a 36m translucent cylinder standing over the island.
+    // Viewed from directly above it is a disc of pink over the entire map.
+    hide(zoneMesh);
+
+    /*
+     * No fog for this pass.
+     *
+     * The camera is 260m up, which is far beyond every fog distance in the
+     * scene, so a fogged render comes back as a single flat disc of fog colour
+     * -- a pink circle with no island in it. That is exactly what the first
+     * version produced, and it is indistinguishable from a deliberate grey
+     * plate, which is how it survived a build without anyone noticing.
+     *
+     * Distance fog exists to hide the horizon of a first-person view. From
+     * straight above there is no horizon to hide.
+     */
+    const prevFog = scene.fog;
+    scene.fog = null;
+    const prevBg = scene.background;
+    // Deep sea, not deep night. This is the colour of everything outside the
+    // island, so it is what tells the player where the coast is.
+    scene.background = new THREE.Color('#123a63');
+
+    /*
+     * Bright, shadowless, flat-ish light for the overhead pass.
+     *
+     * The scene's own sun sits at (70,120,40) and casts 2048px shadows across a
+     * 200-unit box. That is right for a first-person view and wrong for a map:
+     * from straight above, every building lies in its own long shadow, so half
+     * the island renders as unlit toon -- the black plateau. Shadows off, and
+     * the hemisphere lifted, gives the even top light a map wants.
+     *
+     * Both restored below, so the game view is untouched.
+     */
+    const prevShadow = renderer.shadowMap.enabled;
+    renderer.shadowMap.enabled = false;
+    const lit = [];
+    scene.traverse((o) => {
+      if (!o.isHemisphereLight && !o.isAmbientLight) return;
+      lit.push([o, o.intensity]);
+      o.intensity = Math.max(o.intensity, 1.6);
+    });
+
+    const prevTarget = renderer.getRenderTarget();
+    renderer.setRenderTarget(null);
+    const oldSize = renderer.getSize(new THREE.Vector2());
+    const oldPR = renderer.getPixelRatio();
+    try {
+      renderer.setPixelRatio(1);
+      renderer.setSize(size, size, false);
+      cam.aspect = 1;
+      renderer.render(scene, cam);
+
+      mapImage = document.createElement('canvas');
+      mapImage.width = size;
+      mapImage.height = size;
+      mapImage.getContext('2d').drawImage(renderer.domElement, 0, 0);
+    } finally {
+      /*
+       * Restored in a `finally`, not on the happy path.
+       *
+       * Every one of these is global renderer/scene state that the *game* reads
+       * on the next frame. If the render or the canvas copy throws -- and a
+       * headless context that cannot allocate a 1024px buffer genuinely can --
+       * then a plain trailing restore never runs, and the match is left running
+       * with no shadows, a lifted ambient and a 1024px viewport. The minimap is
+       * a nice-to-have; silently corrupting the game to produce one is not a
+       * trade worth making.
+       */
+      renderer.setPixelRatio(oldPR);
+      renderer.setSize(oldSize.x, oldSize.y, false);
+      renderer.setRenderTarget(prevTarget);
+      renderer.shadowMap.enabled = prevShadow;
+      scene.fog = prevFog;
+      scene.background = prevBg;
+      for (const [l, i] of lit) l.intensity = i;
+      for (const o of hidden) o.visible = true;
+    }
+    return mapImage;
+  }
   function applyLook(input, settings, assist) {
     let lx = input.lookX;
     let ly = input.lookY;
@@ -818,7 +1058,10 @@ function skipBus() {
   const p = busPosition(0.5);
   world.ufo.group.position.set(p.x, p.y, p.z);
   player.local.set(0, 0, 0);
-  player.pos.set(p.x, p.y - 1, p.z);
+  // dropPlayer() owns the exit point and reads the ship's own hull radius, so
+  // the probe path and the played path cannot disagree about where "outside the
+  // ship" is. Setting the position here as well used to duplicate that rule and
+  // is exactly how the two drifted into putting the camera inside the hull.
   dropPlayer();
   for (const b of bots) {
     if (b.state === 'bus') dropBot(b);
@@ -829,16 +1072,56 @@ function skipBus() {
 function beginBus() {
     clock.phase = 'bus';
     clock.bus = 0;
+    clock.intro = INTRO_TIME;
+    clock.lastCount = 0;
     ufoDepart = -1;
     world.ufo.group.visible = true;
+    setRoof(false);
     inspect = false;
     zone.left = ZONE_PLAN[0].wait;
-    emit({ type: 'toast', text: 'Boarded the drop ship. Jump to leave.' });
+    emit({ type: 'toast', text: 'Aboard the pyramid. Hold for launch.' });
     audio.sfx('crystal');
   }
 
+  /**
+   * Lift or restore the ship's canopy.
+   *
+   * The canopy is correct as art and wrong as a play space. Aboard, the
+   * first-person camera sits on the deck with a 10m slab directly overhead: it
+   * is *inside* the canopy, the deck beneath it is in that slab's full shadow,
+   * and the player sees nothing but two shades of black for the whole ride. So
+   * the roof comes off while the ship is occupied and goes back on once it
+   * leaves.
+   *
+   * Applied per-piece rather than behind one flag, because the pieces arrive
+   * asynchronously as the kit streams in: a roof list captured at build time is
+   * empty for every piece that landed after it.
+   */
+  function setRoof(hidden) {
+    for (const o of world.ufo.roof || []) o.visible = !hidden;
+  }
+
   function updateBus(dt, input, settings) {
-    clock.bus += dt;
+    // Two beats, one phase. The hold runs the countdown with the ship parked,
+    // then the route runs. `clock.bus` only advances after the hold, so u stays
+    // pinned at 0 and the ship genuinely does not move until the number hits 0.
+    if (clock.intro > 0) {
+      clock.intro = Math.max(0, clock.intro - dt);
+      const held = Math.ceil(clock.intro);
+      if (held !== clock.lastCount && held > 0) {
+        clock.lastCount = held;
+        audio.sfx('tick');
+        emit({ type: 'countdown', n: held });
+      }
+      if (clock.intro <= 0) {
+        audio.sfx('launch');
+        emit({ type: 'toast', text: 'Route open — hold on.' });
+        emit({ type: 'cutscene', on: true });
+      }
+    }
+    // Jump is only a drop once the route is running. During the hold it is
+    // ignored entirely, so nobody can leave before the drop is live.
+    if (clock.intro <= 0) clock.bus += dt;
     const u = clamp(clock.bus / BUS_TIME, 0, 1);
     const p = busPosition(u);
     world.ufo.group.position.set(p.x, p.y, p.z);
@@ -852,17 +1135,46 @@ function beginBus() {
     player.pos.set(p.x + player.local.x, p.y + 0.2, p.z + player.local.z);
     updateZone(dt);
     for (const b of bots) if (b.state === 'bus' && u >= b.dropU) dropBot(b);
-    if ((input.jumpPressed || u > 0.98) && clock.bus > 2) dropPlayer();
+    if ((input.jumpPressed || u > 0.98) && clock.bus > 2 && clock.intro <= 0) dropPlayer();
     if (input.emotePressed) startEmote();
   }
 
+  /**
+   * Leave the ship.
+   *
+   * The player leaves from *outside* the hull, not from the deck it is standing
+   * on. Dropping straight down put the camera 0.6m above a 10x10 deck plating
+   * slab, in that slab's own shadow, and it filled the entire view with one
+   * black shape -- the drop opened on a black screen and nobody could tell a
+   * ship from a wall.
+   *
+   * Stepping out sideways past `hullR` and then sinking is both the fix and the
+   * better read: you see the ship above you as you leave it, which is the shot
+   * the whole launch sequence is for.
+   *
+   * The offset is perpendicular to the ship's heading so the player always
+   * steps off the same side, and it is floored at a metre of clearance so a
+   * small hull still cannot be dropped through.
+   */
   function dropPlayer() {
-    const p = world.ufo.group.position;
-    player.pos.set(p.x, p.y - 1, p.z);
+    const g = world.ufo.group;
+    const clear = Math.max(1, (world.ufo.hullR || 5) + 1.5);
+    // The ship's local +X, flattened: stepping off the starboard rail.
+    const yaw = g.rotation.y || 0;
+    player.pos.set(
+      g.position.x + Math.cos(yaw) * clear,
+      g.position.y - 1,
+      g.position.z - Math.sin(yaw) * clear,
+    );
     player.vel.set(0, -2, 0);
     player.gliding = true;
+    player.local.set(0, 0, 0);
     clock.phase = 'play';
     ufoDepart = 0;
+    // Off with it the moment the player is clear. Keeping a 10m deck hanging in
+    // the sky for six seconds while it flies away puts a huge untextured slab
+    // across the sky of every match that follows.
+    setRoof(true);
     inspect = false;
     audio.sfx('jump');
     emit({ type: 'toast', text: 'Hold jump to glide. Release to dive.' });
@@ -872,7 +1184,7 @@ function beginBus() {
    * Fly the drop ship out of the match.
    *
    * updateBus parks it on the drop line, and nothing used to move it after that
-   * â€” so a 60-unit modular ship hung in the sky over the whole island for the
+   *    so a 60-unit modular ship hung in the sky over the whole island for the
    * rest of the match, silhouetted black against the sunset and looking for all
    * the world like floating broken geometry. It now flies on past the island
    * and is hidden once it is out of sight.
@@ -889,10 +1201,14 @@ function beginBus() {
 
   function dropBot(b) {
     const p = world.ufo.group.position;
+    // Same rule as the player: outside the hull, not under the deck. Bots that
+    // spawn inside the ship spend their first second of the fight inside a
+    // shadowed slab with no line of sight, which reads as the bot being stuck.
+    const clear = Math.max(1, (world.ufo.hullR || 5) + 1.5);
     b.state = 'glide';
-    b.pos.x = p.x + (Math.random() - 0.5) * 4;
+    b.pos.x = p.x + clear + (Math.random() - 0.5) * 6;
     b.pos.y = p.y - 1;
-    b.pos.z = p.z + (Math.random() - 0.5) * 4;
+    b.pos.z = p.z + (Math.random() - 0.5) * 6;
     b.vel.x = 0; b.vel.y = -2; b.vel.z = 0;
     if (b.avatar.group.parent !== scene) scene.attach(b.avatar.group);
     b.avatar.group.visible = true;
@@ -1013,8 +1329,17 @@ function beginBus() {
     player.vel.y -= (hold ? 8 : 28) * dt;
     const minVy = hold ? -6.5 : -26;
     if (player.vel.y < minVy) player.vel.y = minVy;
+    // Feet height before the step, for the same reason as in movePlayer(): a
+    // terminal dive covers 0.87 m in a 1/30 s frame, which is more than a
+    // step-up, so measuring reachability from the post-integration position
+    // classifies every landing surface as a ceiling. The glide then never finds
+    // ground, never clears `gliding`, and the player free-falls past the entire
+    // island into the sea shelf -- this is the "falling through the map" bug,
+    // and it is only reachable on the drop, which is why it read as random.
+    const feetY = player.pos.y;
     player.pos.addScaledVector(player.vel, dt);
-    const ground = floorAt(player.pos.x, player.pos.z, 0.35, world.boxes, heightAt(player.pos.x, player.pos.z));
+    const bed = heightAt(player.pos.x, player.pos.z);
+    const ground = floorAt(player.pos.x, player.pos.z, 0.35, world.boxes, bed, feetY);
     if (player.pos.y <= ground + 0.02) {
       player.pos.y = ground;
       player.vel.y = 0;
@@ -1022,6 +1347,25 @@ function beginBus() {
       player.grounded = true;
       audio.sfx('land');
       fx.burst(player.pos, '#ffd1ea', 8, 3);
+      return;
+    }
+    /*
+     * The sea is a floor too, and forgetting that is what let a player sink
+     * forever. Over water the only solid thing below is the seabed, which on
+     * this island shelves to about -28: the glide was asking "am I at -28?"
+     * while descending through -6, so the check never passed, `gliding` stayed
+     * true, and movePlayer -- which owns buoyancy, and which gliding skips
+     * entirely -- never got the chance to hold the player at the surface. The
+     * player ended up parked at y = -20.7 under an ocean they should have been
+     * floating on, which is what "falling through the map" actually looked
+     * like.
+     */
+    if (bed < SEA_Y && player.pos.y <= SEA_Y + 0.05) {
+      player.pos.y = SEA_Y;
+      player.vel.y = 0;
+      player.gliding = false;
+      player.grounded = true;
+      audio.sfx('splash');
     }
   }
 
@@ -1116,7 +1460,7 @@ function beginBus() {
 
     /*
      * Buoyancy. Without it the player sinks to the seabed and stands on it,
-     * fully submerged, taking tide damage with no way out â€” the old sea floor
+     * fully submerged, taking tide damage with no way out    the old sea floor
      * sat at -4.5 so this never showed, but the island now shelves down to -28.
      * Floating at the surface makes the water something you cross under
      * pressure rather than a pit you fall into.
@@ -1136,8 +1480,32 @@ function beginBus() {
       player.vel.y -= 20 * dt;
     }
     if (!input.jumpHeld && player.vel.y > 0) player.vel.y *= Math.exp(-6 * dt);
+    // Capture the feet height *before* gravity moves them. floorAt decides
+    // whether a surface is reachable from the feet, and by the time this line
+    // has run the player may already be a metre below the very surface they
+    // were about to land on -- a terminal-velocity dive covers more ground per
+    // frame than a step-up is tall, so every surface reads as a ceiling and the
+    // player falls straight through the island. Measured against the position
+    // at the top of the step, the same query is correct in both directions:
+    // rising, you are still below the roof and it stays a ceiling; falling, you
+    // are still above the floor and it stays a floor.
+    const feetY = player.pos.y;
     player.pos.y += player.vel.y * dt;
-    const ground = floorAt(player.pos.x, player.pos.z, 0.34, world.boxes, heightAt(player.pos.x, player.pos.z));
+    const ground = floorAt(player.pos.x, player.pos.z, 0.34, world.boxes, heightAt(player.pos.x, player.pos.z), feetY);
+    // Last-resort floor. Everything above can be defeated by geometry we did not
+    // model -- a box whose top sits above the feet on the frame you arrive at
+    // it, a terrain sampler that returns a value the rest of the world does not
+    // share, a drop out of bounds. The cost of this line when it never fires is
+    // one comparison; the cost of not having it is a match that a single bad
+    // frame can delete the player from, which is unrecoverable and is exactly
+    // the "falling through the map" report. Terrain is always a legal floor --
+    // you cannot be legitimately under it -- so this can only ever put a
+    // falling player back on the ground they were already heading for.
+    const terrain = heightAt(player.pos.x, player.pos.z);
+    if (Number.isFinite(terrain) && player.pos.y < terrain) {
+      player.pos.y = terrain;
+      player.vel.y = 0;
+    }
     if (player.pos.y <= ground) {
       const impactVel = player.vel.y;
       player.pos.y = ground;
@@ -1279,6 +1647,19 @@ function beginBus() {
     const pellets = spec.pellets;
     let any = false;
     let head = false;
+    /**
+     * Impact effects are emitted ONCE per shot, not once per pellet.
+     *
+     * This used to draw a tracer, a ring and a spark burst inside the pellet
+     * loop, so a single Blossom blast - 8 pellets - asked for 8 tracers, 8
+     * rings and 48 sparks in one frame, before the muzzle flash. Nine
+     * characters with automatics did the same and the screen turned to soup.
+     * Damage and hit registration still run per pellet, because that is the
+     * simulation; only the *drawing* is per shot. One tracer and one impact
+     * reads as one shot, which is also what it is.
+     */
+    let firstHit = null;
+    let firstWorld = null;
     for (let i = 0; i < pellets; i++) {
       const dir = _dir.clone();
       const sp = (spec.spread + player.bloom) * (inputAim() ? 0.4 : 1);
@@ -1288,7 +1669,6 @@ function beginBus() {
       dir.normalize();
       const hit = raycast(origin.x, origin.y, origin.z, dir.x, dir.y, dir.z, 180, (b) => b.team === 0);
       const end = origin.clone().addScaledVector(dir, hit ? hit.t : 80);
-      fx.tracer(origin, end, '#ffd6ea');
       if (hit && hit.bot) {
         const dmg = falloffDamage(spec, hit.t) * (hit.head ? spec.head : 1);
         hurtBot(hit.bot, dmg, { name: look().name, byPlayer: true, head: hit.head });
@@ -1296,6 +1676,9 @@ function beginBus() {
         head = head || hit.head;
         player.hits++;
         player.damage += dmg;
+        // The first body pellet decides where the impact is drawn, so a blast
+        // does not spray eight impacts across the target.
+        if (!firstHit) firstHit = { end, head: hit.head };
         // Report the damage that was actually applied *after* range falloff and
         // the headshot multiplier, not the gun's headline number. A tester
         // comparing this against the arms table is comparing the right things.
@@ -1330,15 +1713,25 @@ function beginBus() {
           // the eye already is.
           fx.number(end, String(Math.round(dmg)), hit.head ? '#ffe566' : '#ffffff');
         }
-        // An upright ring on a body, a flat one on the world. Same shot, two
-        // very different events, and the difference is what makes "hit or miss"
-        // readable without reading text.
-        fx.ring(end, hit.head ? '#ffe566' : '#ff4f9a', !hit.bot);
-        fx.burst(end, hit.head ? '#ffe566' : '#ff4f9a', 6, 3);
       } else if (hit) {
-        fx.burst(end, '#efe6ff', 4, 2);
-        fx.ring(end, '#efe6ff', true);
+        if (!firstWorld) firstWorld = end;
       }
+    }
+    // One tracer, one impact, per shot. The tracer follows whichever pellet
+    // actually connected - a body hit if there was one, otherwise the first
+    // pellet to reach the world - so the line always agrees with the impact
+    // it ends at.
+    const fxEnd = firstHit ? firstHit.end : (firstWorld || origin.clone().addScaledVector(_dir, 60));
+    fx.tracer(origin, fxEnd, '#ffd6ea');
+    if (firstHit) {
+      // An upright ring on a body, a flat one on the world. Same shot, two
+      // very different events, and the difference is what makes "hit or miss"
+      // readable without reading text.
+      fx.ring(fxEnd, firstHit.head ? '#ffe566' : '#ff4f9a', false);
+      fx.burst(fxEnd, firstHit.head ? '#ffe566' : '#ff4f9a', 6, 3);
+    } else if (firstWorld) {
+      fx.burst(fxEnd, '#efe6ff', 4, 2);
+      fx.ring(fxEnd, '#efe6ff', true);
     }
     fx.muzzle(origin.clone().addScaledVector(_dir, 0.6));
     if (any) {
@@ -1415,7 +1808,7 @@ function beginBus() {
 
   function useItem() {
     if (player.channel || player.gliding) return;
-    const stack = player.items[player.itemIndex];
+    const stack = player.inv.slots[player.itemIndex];
     if (!stack || stack.count <= 0) return;
     const spec = ITEMS[stack.id];
     if (!spec) return;
@@ -1430,7 +1823,7 @@ function beginBus() {
       player.knockHp = 100;
       consumeStack();
       audio.sfx('revive');
-      emit({ type: 'toast', text: 'Second Heart ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â you are up.' });
+      emit({ type: 'toast', text: 'Second Heart — you are up.' });
       return;
     }
     player.channel = { id: stack.id, t: spec.time, max: spec.time };
@@ -1453,23 +1846,39 @@ function beginBus() {
     const spec = ITEMS[player.channel.id];
     player.channel = null;
     if (!spec) return;
-    const stack = player.items.find((s) => s.id === spec.id);
+    const stack = player.inv.slots.find((s) => s && s.id === spec.id);
     if (!stack) return;
     if (spec.hp) player.hp = Math.min(100, player.hp + spec.hp);
     if (spec.shield) player.shield = Math.min(100, player.shield + spec.shield);
-    stack.count--;
-    if (stack.count <= 0) player.items = player.items.filter((s) => s !== stack);
-    if (player.itemIndex >= player.items.length) player.itemIndex = 0;
+    removeId(player.inv, spec.id, 1);
     audio.sfx(spec.kind === 'shield' ? 'shield' : 'heal');
     fx.hearts(player.pos.clone().setY(player.pos.y + 1.4));
   }
 
   function consumeStack() {
-    const stack = player.items[player.itemIndex];
+    removeAt(player.inv, player.itemIndex, 1);
+  }
+
+  /**
+   * Drop the selected stack on the ground as a real, re-collectable pickup.
+   *
+   * Before this, the only way to free a slot was to consume the item, so a full
+   * bag of the wrong heals was a dead end -- there was no way to make room for
+   * the medkit you were actually standing on. Dropping spawns a pickup with the
+   * item's own model, so it reads on the floor as that item rather than as a
+   * generic blue crate.
+   */
+  function dropItem() {
+    if (player.channel || player.gliding) return;
+    const stack = player.inv.slots[player.itemIndex];
     if (!stack) return;
-    stack.count--;
-    if (stack.count <= 0) player.items.splice(player.itemIndex, 1);
-    if (player.itemIndex >= player.items.length) player.itemIndex = 0;
+    const spec = ITEMS[stack.id];
+    const dx = Math.sin(player.yaw) * 1.5;
+    const dz = Math.cos(player.yaw) * 1.5;
+    addPickup('item', stack.id, player.pos.x + dx, heightAt(player.pos.x + dx, player.pos.z + dz), player.pos.z + dz);
+    removeAt(player.inv, player.itemIndex, stack.count);
+    audio.sfx('drop');
+    emit({ type: 'toast', text: `Dropped ${spec?.name || stack.id}` });
   }
 
   function throwGrenade() {
@@ -1587,14 +1996,8 @@ function beginBus() {
     } else if (p.kind === 'item') {
       const spec = ITEMS[p.id];
       if (!spec) return;
-      let stack = player.items.find((s) => s.id === p.id);
-      if (!stack) {
-        if (player.items.length >= 5) { emit({ type: 'toast', text: 'Inventory full' }); return; }
-        stack = { id: p.id, count: 0 };
-        player.items.push(stack);
-      }
-      if (stack.count >= spec.stack) return;
-      stack.count++;
+      const res = addItem(player.inv, p.id, 1, spec);
+      if (!res.ok) { emit({ type: 'toast', text: 'Inventory full' }); return; }
       emit({ type: 'toast', text: spec.name });
     }
     p.taken = true;
@@ -1721,7 +2124,7 @@ function beginBus() {
   }
 
   /**
-   * Single entry point for everything that damages the player ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â gunfire,
+   * Single entry point for everything that damages the player — gunfire,
    * grenades, the storm and the tide.
    *
    * Alongside the health/shield maths it resolves *where* the damage came from
@@ -1731,6 +2134,29 @@ function beginBus() {
    */
   function hurtPlayer(amount, info = {}) {
     if (!player.alive || clock.phase === 'end') return;
+    /**
+     * God mode.
+     *
+     * Read fresh from settings every hit rather than latched at match start, so
+     * the toggle works mid-fight without a restart. It deliberately still
+     * fires the hurt *feedback* -- flash, indicator, sound -- because a cheat
+     * that also removes all feedback teaches you the wrong timing; you want
+     * to know you were hit, you just do not die. Only the health numbers and
+     * the death are suppressed.
+     */
+    const god = getSettings().god === true;
+    if (god) {
+      const gFrom = info.from;
+      if (gFrom && amount > 0.01 && player.time - hurtFxAt > HURT_FX_MIN_GAP) {
+        hurtFxAt = player.time;
+        const dx = gFrom.x - player.pos.x;
+        const dz = gFrom.z - player.pos.z;
+        const len = Math.hypot(dx, dz) || 1;
+        emit({ type: 'hurt', bearing: Math.atan2(dx / len, dz / len), amount: 0, god: true });
+      }
+      if (!info.quiet) audio.sfx('hurt');
+      return;
+    }
     let left = amount;
     if (player.shield > 0) {
       const s = Math.min(player.shield, left);
@@ -1770,7 +2196,7 @@ function beginBus() {
       player.knocked = true;
       player.knockHp = 100;
       audio.sfx('knock');
-      emit({ type: 'toast', text: 'Knocked ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â crawl, or wait for your duo.' });
+      emit({ type: 'toast', text: 'Knocked — crawl, or wait for your duo.' });
     }
     if (player.knocked && player.knockHp <= 0) killPlayer(info);
   }
@@ -1902,7 +2328,7 @@ function beginBus() {
         b.vel.y -= 20 * dt;
       }
       b.pos.y += b.vel.y * dt;
-      const g = floorAt(b.pos.x, b.pos.z, 0.3, world.boxes, heightAt(b.pos.x, b.pos.z));
+      const g = floorAt(b.pos.x, b.pos.z, 0.3, world.boxes, heightAt(b.pos.x, b.pos.z), b.pos.y);
       if (b.pos.y < g) { b.pos.y = g; b.vel.y = 0; }
       if (intent.revive) {
         b.revive += dt;
@@ -1957,11 +2383,57 @@ function beginBus() {
     }
   }
 
+  /**
+   * How hard the bots push back, as a single multiplier on their damage.
+   *
+   * They used to deal `falloff * 0.85` -- 85% of the player's own damage, from
+   * 43 of them, with no reaction time and no miss floor. The player has 100hp
+   * and a Heartbreaker lands for 16, so a single bot that acquired you held
+   * its trigger for a 9-round burst and took a third of your health before you
+   * finished turning. Combined with a burst that started the instant line of
+   * sight was clear, a lobby of them was not a fight.
+   *
+   * This is the one knob for the whole roster. The rest of the nerf is
+   * behavioural (see BOT_AIM below) because a damage multiplier alone still
+   * leaves them snapping to you like turrets.
+   */
+  const BOT_DAMAGE = 0.42;
+
+  /**
+   * Bots acquire a target, then wait before the first shot.
+   *
+   * The single biggest reason they felt superhuman: `stepBot` set `intent.fire`
+   * on the very first frame line of sight was clear, so reaction time was
+   * literally zero. A human needs a beat to read "someone is there, where are
+   * they, what do I shoot" -- bots skipped all three. Wobbling per bot keeps
+   * the delay unpredictable, so breaking line of sight for a moment actually
+   * buys something.
+   */
+  const BOT_AIM = {
+    /** Seconds before the first shot after acquiring a target. */
+    reaction: [0.42, 0.95],
+    /** Rounds per burst. Then a pause, so fire is not a flat stream. */
+    burst: [3, 7],
+    /** Seconds between bursts. */
+    cooldown: [0.35, 0.9],
+    /**
+     * Extra spread on top of the gun's own, as a fraction of one radian at
+     * the muzzle. Distance-scaled, so a bot is dangerous in your face and
+     * genuinely unreliable at 40m. The old spread was `0.03 + dist*0.0009`,
+     * which at 40m is about 2 degrees -- a marksman.
+     */
+    jitter: 0.055,
+    /** Beyond this range their fire is heavily degraded. */
+    maxRange: 52,
+  };
+
+  function randRange(rng, [lo, hi]) { return lo + rng() * (hi - lo); }
+
   function botShoot(b, aim) {
     const spec = GUNS[b.gun];
     b.mag--;
     b.shootCd = 60 / spec.rpm;
-    if (b.mag <= 0) b.reload = 1.5;
+    if (b.mag <= 0) b.reload = 1.5 + Math.random() * 0.8;
     const ox = b.pos.x;
     const oy = b.pos.y + (b.knocked ? 0.4 : 1.45);
     const oz = b.pos.z;
@@ -1969,9 +2441,13 @@ function beginBus() {
     let dy = aim.y - oy;
     let dz = aim.z - oz;
     const len = Math.hypot(dx, dy, dz) || 1;
-    const spread = 0.03 + len * 0.0009;
+    // Distance error, then per-shot jitter. Both grow with range, and past
+    // maxRange the jitter dominates so a bot across the map is mostly
+    // shooting at where you were.
+    const far = Math.max(0, len - BOT_AIM.maxRange);
+    const spread = spec.spread * 1.5 + BOT_AIM.jitter * Math.min(3, 0.4 + len / 26) + far * 0.05;
     dx = dx / len + (Math.random() - 0.5) * spread;
-    dy = dy / len + (Math.random() - 0.5) * spread;
+    dy = dy / len + (Math.random() - 0.5) * spread * 0.6;
     dz = dz / len + (Math.random() - 0.5) * spread;
     const n = Math.hypot(dx, dy, dz) || 1;
     dx /= n; dy /= n; dz /= n;
@@ -1987,9 +2463,9 @@ function beginBus() {
     }
     if (Math.hypot(ox - player.pos.x, oz - player.pos.z) < 70) fx.tracer(new THREE.Vector3(ox, oy, oz), end, '#ff9ad2');
     if (hit && hit.player) {
-      const dmg = falloffDamage(spec, hit.t) * (hit.head ? spec.head : 1) * 0.85;
+      const dmg = falloffDamage(spec, hit.t) * (hit.head ? spec.head : 1) * BOT_DAMAGE;
       hurtPlayer(dmg, { name: b.name, from: { x: ox, z: oz }, head: hit.head });
-    } else if (hit && hit.bot) hurtBot(hit.bot, falloffDamage(spec, hit.t), { name: b.name });
+    } else if (hit && hit.bot) hurtBot(hit.bot, falloffDamage(spec, hit.t) * BOT_DAMAGE, { name: b.name });
   }
 
   function abstractFight() {
@@ -2562,6 +3038,7 @@ function beginBus() {
     snap.low = player.hp > 0 && player.hp <= 30;
     snap.lobby = Math.max(0, clock.lobby);
     snap.bus = clock.bus / BUS_TIME;
+    snap.countdown = clock.phase === 'bus' && clock.intro > 0 ? Math.ceil(clock.intro) : 0;
     snap.match = clock.match;
     snap.result = result;
     if (world.isGraybox) {
@@ -2614,7 +3091,7 @@ function beginBus() {
       snap.zoneText = zone.mode === 'shrink' ? `Storm ${zone.left.toFixed(0)}s` : plan ? `Calm ${Math.max(0, zone.left).toFixed(0)}s` : 'Final circle';
     }
     snap.channel = player.channel ? 1 - player.channel.t / player.channel.max : 0;
-    snap.items = player.items.map((s, i) => ({ ...s, name: ITEMS[s.id]?.name || s.id, on: i === player.itemIndex }));
+    syncInvSnapshot();
     snap.buffs = Object.keys(player.buffs).map((id) => ({ id, name: CRYSTALS[id]?.name || id, t: player.buffs[id], color: CRYSTALS[id]?.color || '#fff' }));
     snap.partner = ptn ? { name: ptn.name, hp: ptn.hp, shield: ptn.shield, knocked: ptn.knocked, alive: ptn.alive, dist: Math.hypot(ptn.pos.x - player.pos.x, ptn.pos.z - player.pos.z) } : null;
     const interact = built ? focusedInteract() : null;
@@ -2642,6 +3119,10 @@ function beginBus() {
     // The minimap's POI layer is a list of island landmarks. On the range it
     // plotted four places that are not on this map. The lanes take their place.
     snap.isRange = !!world.isGraybox;
+    // God mode is on the snapshot so the HUD can say so. A cheat that gives no
+    // indication is a cheat that gets left on and quietly invalidates a whole
+    // playtest.
+    snap.god = getSettings().god === true;
     snap.lanes = world.isGraybox
       ? (world.gates || []).map((m) => ({ z: world.spawn.z - m }))
       : [];
@@ -2660,39 +3141,37 @@ function beginBus() {
         ang: bearingTo(player.pos.x, player.pos.z, 0, world.spawn.z - m, player.yaw),
       }));
     } else {
-      snap.compass = POIS.map((p) => ({ name: p.name, color: p.color, ang: angleTo(p.x, p.z) }));
+      // Landmarks come from the map that was actually built, not from the
+      // module-level POIS list. Reading the global here is what made the
+      // compass lie on the range, and adding a second island map would have
+      // quietly repeated it: the HUD would have pointed at "Downtown" and
+      // "Neon Grove" on a map that has neither.
+      snap.compass = (world.pois || POIS).map((p) => ({
+        name: p.name, color: p.color, ang: angleTo(p.x, p.z),
+      }));
+      // The minimap plots the same list, so hand it over rather than letting
+      // the shell reach for its own copy.
+      snap.pois = world.pois || POIS;
     }
+    /*
+     * No floating name tags.
+     *
+     * There were up to 28 of them at once -- every bot inside 28m printed its
+     * name over its head -- and that is the single loudest thing on the screen
+     * in a fight. It obscured the targets the player is shooting at, and it
+     * gave away exactly where every enemy was without the player having to
+     * look for them.
+     *
+     * Fortnite shows no name over an enemy either. The information that was
+     * actually being carried here is not lost: the compass still gives bearing,
+     * the hit direction indicators still show where damage came from, and the
+     * kill feed still names who died. What is gone is the free wallhack.
+     *
+     * The loop that filled this array is deleted rather than gated on a
+     * setting, so a half-disabled nametag system cannot come back through a
+     * stale reference.
+     */
     snap.labels = [];
-    const cam = (inspect || clock.phase === 'end' || emoteT > 0) ? cine : camera;
-    if (ptn && ptn.alive && ptn.state !== 'bus') snap.labels.push(labelFor(ptn.name, ptn.pos, 1.9, 'ally', cam));
-    for (const b of bots) {
-      if (!b.alive || b.partner || b.state === 'bus') continue;
-      // A range target's useful label is its distance, not its name. Down the
-      // lane there are sixteen of them and "Target hi" / "Target lo" /
-      // "Target strafe" all resolve to the same few pixels and overlap into an
-      // unreadable smear — which is worse than no label, because it hides the
-      // target you are actually aiming at. The distance is the one fact the
-      // tester is reading off the screen while judging falloff, and the gantry
-      // signs above each gate already say what the lane is.
-      if (b.dummy) {
-        const d = Math.hypot(b.pos.x - player.pos.x, b.pos.z - player.pos.z);
-        // Beyond 60m a target is a few pixels tall and its label is more visual
-        // noise than information; the compass carries the far bearings instead.
-        if (d < 60) {
-          const l = labelFor(`${d.toFixed(0)}m`, b.pos, (b.dummyHeight || 1.7) + 0.3, 'enemy', cam);
-          // Never label whatever is directly under the crosshair. The label sits
-          // on top of the aim point by construction, and a distance readout
-          // printed across the crosshair is worse than no readout: the player
-          // cannot see where they are pointing. The distance is still on the
-          // panel and on the compass, and the floating damage number reports
-          // the hit itself.
-          if (l && l.on && Math.abs(l.x - 0.5) < 0.09 && Math.abs(l.y - 0.5) < 0.09) continue;
-          snap.labels.push(l);
-        }
-        continue;
-      }
-      if (Math.hypot(b.pos.x - player.pos.x, b.pos.z - player.pos.z) < 28) snap.labels.push(labelFor(b.name, b.pos, 1.9, 'enemy', cam));
-    }
     snap.stats = {
       kills: player.kills,
       damage: Math.round(player.damage),
@@ -2756,12 +3235,32 @@ function beginBus() {
 
   // D-pad item cycle happens from UI via this hook.
   function cycleItem(dir) {
-    if (!player.items.length) return;
-    player.itemIndex = (player.itemIndex + dir + player.items.length) % player.items.length;
+    if (!player.inv.slots.some(Boolean)) return;
+    stepSelection(player.inv, dir);
+    player.itemIndex = player.inv.selected;
   }
 
   function selectItem(i) {
-    if (player.items[i]) player.itemIndex = i;
+    if (player.inv.slots[i]) {
+      player.itemIndex = i;
+      player.inv.selected = i;
+    }
+  }
+
+  /** Sort + merge the bag, from the inventory screen's SORT button. */
+  function sortItems() {
+    const specOf = (id) => ITEMS[id] || null;
+    sortInventory(player.inv, specOf);
+    mergeStacks(player.inv, specOf);
+    player.itemIndex = player.inv.selected;
+    audio.sfx('pickup');
+    emit({ type: 'toast', text: 'Inventory sorted' });
+  }
+
+  function moveItem(from, to) {
+    const ok = swapSlots(player.inv, from, to);
+    if (ok) player.itemIndex = player.inv.selected;
+    return ok;
   }
 
   /**
@@ -2785,12 +3284,32 @@ function beginBus() {
   return {
     scene, camera, cine, buildStep, update, pull, reset, resize, activeCamera,
     setCaptureWanted, applyProfile, cycleItem, selectItem, skipBus, setViewmodelWeapon,
-    cityBounds: () => (world ? world.cityBounds() : null),
+    sortItems, moveItem, dropItem,
+    // Guarded: `world.cityBounds` is optional, and a map that omits it made
+    // this throw a TypeError the first time the render harness asked for the
+    // city extent to frame its inspection cameras.
+    cityBounds: () => (world && typeof world.cityBounds === 'function' ? world.cityBounds() : null),
     /**
      * Bot health. A single NaN position turns a bot's muzzle flashes, tracers
      * and loot beams into NaN-transformed meshes, which rasterise as large black
-     * rectangles floating in the sky â€” so count them rather than chase ghosts.
+     * rectangles floating in the sky    so count them rather than chase ghosts.
      */
+    /**
+     * Grant items directly, for the render harness and for testing the bag
+     * without walking the whole island to find a chest. Same code path the
+     * ground pickup uses, so what renders here is what a real pickup renders.
+     */
+    debugGiveItem: (id, n = 1) => {
+      const spec = ITEMS[id];
+      if (!spec) return { ok: false, reason: `no such item: ${id}` };
+      const res = addItem(player.inv, id, n, spec);
+      return { ...res, used: occupied(player.inv), cap: player.inv.capacity };
+    },
+    /** Live bag contents, for the harness to assert against the DOM. */
+    debugInventory: () => player.inv.slots.map((s, i) => (s ? { i, id: s.id, count: s.count } : { i, empty: true })),
+    /** The top-down island image for the HUD minimap. Built on first ask. */
+    mapImage: () => (built ? buildMapImage() : null),
+    mapRadius: () => ISLAND_R * 1.12,
     debugBots: () => {
       const bad = [];
       let grounded = 0;
@@ -2853,7 +3372,7 @@ function beginBus() {
         loadState: (v && v.load && v.load.state) || (v ? 'no-load-field' : null),
       };
     }),
-    /** Where the player is and what the zone is doing Ã¢â‚¬â€ for map QA. */
+    /** Where the player is and what the zone is doing — for map QA. */
     debugState: () => ({
       px: +player.pos.x.toFixed(1),
       py: +player.pos.y.toFixed(1),
@@ -2868,7 +3387,9 @@ function beginBus() {
       groundUnderPlayer: +heightAt(player.pos.x, player.pos.z).toFixed(2),
     }),
     ready: () => built, phase: () => clock.phase,
-    snapshot: () => snap,
+    // Refresh the bag fields on read, so the loadout screen is correct even
+    // while the simulation is paused and update() is not running.
+    snapshot: () => { syncInvSnapshot(); return snap; },
     /**
      * The live bots, not a copy.
      *

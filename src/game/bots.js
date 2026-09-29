@@ -40,6 +40,14 @@ function makeBot(id, name, team, seed, rng) {
     reload: 0,
     shootCd: 0,
     burst: 0,
+    /**
+     * Engagement state for the reaction/burst model. `targetId` is who they
+     * are currently shooting at; changing it costs a fresh reaction delay.
+     */
+    targetId: null,
+    reactionT: 0,
+    burstLeft: 0,
+    burstCd: 0,
     revive: 0,
     kills: 0,
     think: rng(),
@@ -67,6 +75,25 @@ export function createRoster(playerName) {
 }
 
 /**
+ * How a bot acquires and sustains fire.
+ *
+ * These are the numbers that decide whether the lobby is a fight or a
+ * firing squad. Before them, a bot opened fire on the frame it gained line of
+ * sight and held a flat nine-round burst forever, so walking into the open
+ * was a 200ms death sentence no matter what you did.
+ *
+ *   reaction   - the beat between seeing you and shooting. Wobbled per bot so
+ *                a group does not open in unison, which reads as terrifying
+ *                rather than as fair.
+ *   burst      - rounds before it stops to think. Short enough that cover
+ *                works.
+ *   burstGap   - the pause afterwards. This is the window you fight in.
+ */
+const BOT_REACTION = [0.45, 1.05];
+const BOT_BURST = [3, 6];
+const BOT_BURST_GAP = [0.4, 1.0];
+
+/**
  * Character ids that ship real animation clips.
  *
  * These are dealt to a slice of the roster so an actual match contains walkers.
@@ -76,36 +103,38 @@ export function createRoster(playerName) {
  * animated bodies is what makes the island read as a game with people in it
  * rather than a shooting range with mannequins.
  */
-const ANIMATED = ['soldier_rigged', 'ual1_standard', 'miyazawa_fighter'];
+export const ANIMATED = ['soldier_rigged', 'ual1_standard', 'miyazawa_fighter'];
 
 /**
  * Give the roster real bodies.
  *
  * The PSX library is 45 distinct rigged female characters at ~250 KB each, so
- * every bot can have her own face and outfit for a fraction of what one
- * 117 MB locker download costs. Ids are dealt out round-robin (shuffled, so two
- * bots rarely open with the same model) and a slice of the roster stays on the
- * procedural body as visual variety.
+ * every bot could have had her own face and outfit for a fraction of what one
+ * 117 MB locker download costs. That trade is currently reversed: the PSX
+ * models are static FBX files with no animation clips, so they are all driven
+ * by the procedural rig, which *slides* rather than steps, and they do not
+ * interact convincingly with a weapon. On screen that reads as a crowd of
+ * mannequins shuffling around a map.
  *
- * `animatedEvery` controls how often a bot is given a clip-driven model. Set it
- * high to make the island mostly static bodies again.
+ * So the roster now draws only from `ANIMATED` -- the three models that ship
+ * real clips -- and the PSX library is off by default. Passing
+ * `usePsx: true` brings it back, which is the escape hatch if the duplicated
+ * silhouettes turn out to read worse than the sliding, and it is the first
+ * thing to try when more rigged models land.
  *
- * Returns a promise so callers can await the manifest before building avatars.
+ * `animatedEvery` deals the three models round-robin. 1 gives every bot the
+ * same model; 3 is a third each, which is what ships.
  */
-export async function assignBotModels(bots, { proceduralEvery = 7, animatedEvery = 3 } = {}) {
-  const roster = await getPsxRoster();
+export async function assignBotModels(bots, { usePsx = false, animatedEvery = 3 } = {}) {
+  const roster = usePsx ? await getPsxRoster() : [];
   const bag = [];
   bots.forEach((b, i) => {
-    // Every Nth bot keeps the procedural body.
-    if (i % proceduralEvery === proceduralEvery - 1) return;
-    // Every Nth of the rest gets a model with real animation clips.
-    if (animatedEvery > 0 && i % animatedEvery === 0) {
-      b.look.model = ANIMATED[(i / animatedEvery) % ANIMATED.length | 0];
+    if (animatedEvery > 0) {
+      b.look.model = ANIMATED[i % ANIMATED.length | 0];
       return;
     }
     if (!roster.length) return;
     if (!bag.length) {
-      // Refill with a shuffled copy so a long match still varies.
       const next = roster.slice();
       for (let k = next.length - 1; k > 0; k--) {
         const s = Math.floor(Math.random() * (k + 1));
@@ -195,10 +224,47 @@ export function stepBot(bot, ctx) {
     intent.yaw = Math.atan2(-dx / len, -dz / len);
     if (sees && bot.reload <= 0) {
       intent.aim = { x: tp.x, y: (tp.y || 0) + (threat.knocked ? 0.4 : 1.35), z: tp.z };
-      intent.fire = bot.burst > 0;
+      /**
+       * Reaction time, then bursts.
+       *
+       * Previously `intent.fire` was true on the first frame line of sight was
+       * clear, and stayed true for a flat 9-round burst -- so every bot in
+       * range opened the instant it turned a corner and dumped a full mag.
+       * There was no beat to read the situation, no break in the fire, and
+       * no reason ever to break line of sight.
+       *
+       * Now a bot takes a per-bot reaction delay the first time it acquires a
+       * target, fires a short burst, then pauses long enough to be punished.
+       * The delay resets only when the target is actually lost, so ducking
+       * behind cover genuinely buys the seconds it should.
+       */
+      if (bot.targetId !== threat.id) {
+        bot.targetId = threat.id;
+        bot.reactionT = BOT_REACTION[0] + Math.random() * (BOT_REACTION[1] - BOT_REACTION[0]);
+        bot.burstLeft = 0;
+      }
+      if (bot.reactionT > 0) bot.reactionT -= ctx.dt;
+      if (bot.burstCd > 0) {
+        bot.burstCd -= ctx.dt;
+      } else if (bot.burstLeft <= 0) {
+        bot.burstLeft = BOT_BURST[0] + Math.floor(Math.random() * (BOT_BURST[1] - BOT_BURST[0] + 1));
+      }
+      if (bot.reactionT <= 0 && bot.burstLeft > 0) {
+        intent.fire = true;
+        bot.burstLeft--;
+        if (bot.burstLeft <= 0) {
+          bot.burstCd = BOT_BURST_GAP[0] + Math.random() * (BOT_BURST_GAP[1] - BOT_BURST_GAP[0]);
+        }
+      }
+    } else {
+      // Lost them. Forget the engagement so the next sighting costs a fresh
+      // reaction delay rather than continuing the burst.
+      bot.targetId = null;
+      bot.burstLeft = 0;
     }
     return;
   }
+  bot.targetId = null;
 
   const home = bot.poi;
   const dHome = Math.hypot(home.x - me.x, home.z - me.z);

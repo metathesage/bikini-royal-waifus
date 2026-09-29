@@ -6,6 +6,7 @@ import {
 import { CANDIDATES } from '../data/candidates.js';
 import { GUNS, MELEE, ITEMS } from '../game/weapons.js';
 import { screenBearing } from '../core/basis.js';
+import { iconFor, iconForThing } from './icons.js';
 import { xpToNext } from '../core/store.js';
 
 const GLYPH = {
@@ -143,6 +144,7 @@ export function createShell(bus) {
     ['set-assist', 'assist', 'check'],
     ['set-shake', 'shake', 'check'],
     ['set-touch', 'touch', 'check'],
+    ['set-god', 'god', 'check'],
   ];
   for (const [id, key, type] of settingMap) {
     $(id).addEventListener('input', (e) => {
@@ -228,9 +230,9 @@ export function createShell(bus) {
     btn.dataset.id = c.id;
     btn.style.setProperty('--card', RARITY[c.rarity]?.color || '#fff');
     const name = document.createElement('strong');
-    name.textContent = `Candidate ${c.candidate} · ${c.codename}`;
+    name.textContent = `Candidate ${c.candidate}   ${c.codename}`;
     const small = document.createElement('small');
-    small.textContent = `Clearance ${c.clearance} · ${c.title}`;
+    small.textContent = `Clearance ${c.clearance}   ${c.title}`;
     const chips = document.createElement('div');
     chips.className = 'palette';
     for (const p of c.palette) {
@@ -389,7 +391,7 @@ export function createShell(bus) {
       const strong = document.createElement('strong');
       strong.textContent = m.name;
       const small = document.createElement('small');
-      small.textContent = `${RARITY[m.rarity].label} · ${m.blurb}`;
+      small.textContent = `${RARITY[m.rarity].label}   ${m.blurb}`;
       b.append(strong, small);
       panel.append(b);
     }
@@ -404,13 +406,13 @@ export function createShell(bus) {
       const strong = document.createElement('strong');
       strong.textContent = g.name;
       const small = document.createElement('small');
-      small.textContent = `${g.blurb} · ${g.dmg} dmg · ${g.rpm} rpm · ${g.mag} mag`;
+      small.textContent = `${g.blurb}   ${g.dmg} dmg   ${g.rpm} rpm   ${g.mag} mag`;
       row.append(strong, small);
       guns.append(row);
     }
     const wrap = findById(WRAPS, look.wrap);
     const note = document.createElement('p');
-    note.textContent = `Equipped wrap ${wrap.name} · charm ${look.charm}. Change them in the locker.`;
+    note.textContent = `Equipped wrap ${wrap.name}   charm ${look.charm}. Change them in the locker.`;
     guns.append(note);
     root.append(panel, guns);
   }
@@ -428,6 +430,7 @@ export function createShell(bus) {
     $('set-assist').checked = s.assist !== false;
     $('set-shake').checked = s.shake !== false;
     $('set-touch').checked = !!s.touch;
+    $('set-god').checked = !!s.god;
     document.documentElement.style.setProperty('--text', s.text || 1);
     document.body.classList.toggle('touch-on', !!s.touch || matchMedia('(pointer: coarse)').matches);
     const box = $('rebinds');
@@ -467,7 +470,28 @@ export function createShell(bus) {
     setTimeout(() => el.remove(), 2400);
   }
 
+  /**
+   * The most recent HUD snapshot.
+   *
+   * Kept because the cutscene bars need to know, at a timeout, whether the
+   * player has come off the ship yet -- and the event that started the cut has
+   * long since been delivered, so there is nothing to ask except the live state.
+   */
+  let lastSnap = null;
+  function playerStillAboard() {
+    if (!lastSnap) return true;
+    return lastSnap.phase === 'lobby' || lastSnap.phase === 'bus';
+  }
+
   function onEvent(e) {
+    // Cut to the flyover when the route opens, and hold the bars until the
+    // player actually leaves the ship -- they come off on the drop, so pulling
+    // them at launch would frame a normal skydive as a cutscene.
+    if (e.type === 'cutscene') {
+      const lb = $('letterbox');
+      lb.hidden = !e.on;
+      if (e.on) setTimeout(() => { if (!playerStillAboard()) lb.hidden = true; }, 4200);
+    }
     if (e.type === 'toast') toast(e.text);
     if (e.type === 'feed') {
       const row = document.createElement('div');
@@ -539,6 +563,7 @@ export function createShell(bus) {
   }
 
   function hud(snap, dev) {
+    lastSnap = snap;
     device = dev || device;
     updateDmg();
     if (screen !== 'game' && screen !== 'pause') return;
@@ -546,12 +571,22 @@ export function createShell(bus) {
     $('sh').style.width = `${snap.shield}%`;
     $('hp-n').textContent = Math.ceil(snap.knocked ? snap.knockHp : snap.hp);
     $('sh-n').textContent = Math.ceil(snap.shield);
-    $('alive').textContent = `${snap.aliveCount} alive · ${snap.kills} kills`;
+    $('alive').textContent = `${snap.aliveCount} alive   ${snap.kills} kills`;
     $('zone').textContent = snap.zoneText;
     $('wname').textContent = snap.weaponName;
     $('ammo').textContent = snap.weaponKind === 'melee' ? 'Melee' : `${snap.mag} / ${snap.reserve}`;
     $('cross').className = 'cross' + (snap.weaponName === 'Blossom' ? ' shot' : '');
     $('cross').style.transform = `translate(-50%, -50%) scale(${1 + (snap.spread || 0) * 8})`;
+    /**
+     * God-mode banner.
+     *
+     * Persistent and unmissable, not a toast: a toast expires and then the
+     * cheat is invisible again, which is exactly how a "my damage numbers
+     * are wrong" bug report starts. The bar is also what stops this being
+     * mistaken for a difficulty option.
+     */
+    const god = $('godmode');
+    if (god) god.hidden = !snap.god;
     $('scope').classList.toggle('on', !!snap.scope);
     $('vignette').classList.toggle('low', !!snap.low);
     $('vignette').classList.toggle('storm', !!snap.zoneDanger);
@@ -561,7 +596,7 @@ export function createShell(bus) {
       const key = snap.prompt.action ? g[snap.prompt.action] || '' : '';
       prompt.textContent = key ? `${key}  ${snap.prompt.text}` : snap.prompt.text;
       prompt.hidden = false;
-    } else prompt.textContent = snap.phase === 'lobby' ? `Drop ship in ${Math.ceil(snap.lobby)}s` : snap.phase === 'bus' ? 'A / Space to drop — hold jump to glide' : '';
+    } else prompt.textContent = snap.phase === 'lobby' ? `Drop ship in ${Math.ceil(snap.lobby)}s` : snap.phase === 'bus' ? (snap.countdown ? 'Hold for launch' : 'A / Space to drop - hold jump to glide') : '';
     const ch = $('channel');
     ch.classList.toggle('on', snap.channel > 0);
     ch.firstElementChild.style.width = `${snap.channel * 100}%`;
@@ -580,10 +615,10 @@ export function createShell(bus) {
       ab.hidden = false;
       ab.className = `ability-read${snap.ability.ready ? ' ready' : ''}${snap.ability.locked ? ' locked' : ''}`;
       ab.textContent = snap.ability.locked
-        ? `${snap.ability.name} · suppressed by ${snap.ability.lockReason}`
+        ? `${snap.ability.name}   suppressed by ${snap.ability.lockReason}`
         : snap.ability.ready
-          ? `${snap.ability.name} · READY`
-          : `${snap.ability.name} · ${Math.ceil(snap.ability.cd)}s`;
+          ? `${snap.ability.name}   READY`
+          : `${snap.ability.name}   ${Math.ceil(snap.ability.cd)}s`;
     } else ab.hidden = true;
     // The touch pad gets the same readout in the only space it has: the Z key
     // glows when the decree is ready, counts its cooldown down, and dims when
@@ -596,25 +631,117 @@ export function createShell(bus) {
         ? 'Z'
         : String(Math.ceil(snap.ability.cd));
     } else touchAbility.hidden = true;
+    const cd = $('countdown');
+    if (snap.countdown > 0) {
+      cd.hidden = false;
+      if (cd.firstChild.textContent !== String(snap.countdown)) {
+        cd.firstChild.textContent = String(snap.countdown);
+        // Re-trigger the punch-in. Assigning the same node and hoping the
+        // animation restarts is unreliable: remove/reflow/add is what forces it.
+        cd.firstChild.style.animation = 'none';
+        void cd.firstChild.offsetWidth;
+        cd.firstChild.style.animation = '';
+      }
+    } else if (!cd.hidden) cd.hidden = true;
+
+    if (bagOpen) renderBag(snap);
     const hot = $('hotbar');
     hot.innerHTML = '';
-    if (!snap.items.length) {
+    // Weapons first, then a rule, then the consumables. A player has to be able
+    // to answer "what is in my hand and what am I carrying" from the HUD alone,
+    // without opening the bag -- the bag is for reordering, the HUD is for
+    // knowing, and putting one behind the other meant neither could do its job.
+    for (const w of snap.loadout || []) {
       const s = document.createElement('b');
+      s.className = 'slot' + (w.empty ? ' empty' : '') + (w.on ? ' on' : '');
+      if (!w.empty) s.dataset.rarity = w.rarity || 'common';
+      const ic = document.createElement('i');
+      ic.className = 'ico-svg';
+      ic.innerHTML = iconForThing(w.id, w.kind);
+      s.append(ic);
+      const nm = document.createElement('em');
+      nm.textContent = w.empty ? 'Empty' : w.name;
+      s.append(nm);
+      if (!w.empty && w.kind === 'gun') {
+        const am = document.createElement('span');
+        am.className = 'mag';
+        am.textContent = `${w.mag}/${w.reserve}`;
+        s.append(am);
+      }
+      if (w.on) {
+        const tag = document.createElement('span');
+        tag.className = 'equipped';
+        tag.textContent = 'IN HAND';
+        s.append(tag);
+      }
+      hot.append(s);
+    }
+    if ((snap.loadout || []).length) {
+      const sep = document.createElement('hr');
+      sep.className = 'hot-sep';
+      hot.append(sep);
+    }
+    // The snapshot now carries one entry per slot, empties included, so the
+    // compact hotbar has to skip them. It used to assume every entry was a real
+    // item, which printed "undefined x undefined" six times in the corner of
+    // the screen for the whole match. Empties render as dim pips rather than
+    // vanishing, so the bar doubles as a read on how much room is left.
+    const TIMES = String.fromCodePoint(0x00d7);
+    const carried = snap.items.filter((it) => !it.empty);
+    for (const item of snap.items) {
+      const s = document.createElement('b');
+      if (item.empty) {
+        s.className = 'slot empty';
+        s.title = 'Empty slot';
+        hot.append(s);
+        continue;
+      }
+      s.className = 'slot' + (item.on ? ' on' : '');
+      s.dataset.rarity = item.rarity || 'common';
+      s.title = item.blurb || item.name;
+      const ic = document.createElement('i');
+      ic.className = 'ico-svg';
+      ic.innerHTML = iconForThing(item.id, item.kind);
+      const nm = document.createElement('em');
+      nm.textContent = item.name;
+      s.append(ic, nm);
+      // Only a stack of more than one earns a number. A "x1" on everything is
+      // noise that makes two bandage stacks harder to tell apart at a glance,
+      // which is the one thing the count exists to help with.
+      if (item.count > 1) {
+        const c = document.createElement('span');
+        c.className = 'count';
+        c.textContent = `${TIMES}${item.count}`;
+        s.append(c);
+      }
+      if (item.on) {
+        const tag = document.createElement('span');
+        tag.className = 'equipped';
+        tag.textContent = 'SELECTED';
+        s.append(tag);
+      }
+      s.addEventListener('click', () => bus.selectItem(item.index));
+      hot.append(s);
+    }
+    if (!carried.length) {
+      const s = document.createElement('b');
+      s.className = 'hint';
       s.textContent = 'No items';
       hot.append(s);
     }
-    snap.items.forEach((item, i) => {
-      const s = document.createElement('b');
-      s.className = item.on ? 'on' : '';
-      s.textContent = `${item.name} ×${item.count}`;
-      s.addEventListener('click', () => bus.selectItem(i));
-      hot.append(s);
-    });
     const p = $('partner');
     p.innerHTML = '';
     if (snap.partner) {
+      // Built from code points, not literal glyphs. These three used to be
+      // ♥ / ◆ / ✚ written into the source, and every one of them came back out
+      // of the mojibake pass as different characters -- the shield in
+      // particular turned into an em dash with a dagger tacked on, which reads
+      // as a typo rather than as a shield.
+      const HEART = String.fromCodePoint(0x2665);
+      const SHIELD = String.fromCodePoint(0x25c6);
+      const CROSS = String.fromCodePoint(0x271a);
       p.textContent = snap.partner.alive
-        ? `${snap.partner.name}  ${Math.ceil(snap.partner.hp)}♥ ${Math.ceil(snap.partner.shield)}◆ ${snap.partner.knocked ? 'DOWN' : ''}`
+        ? `${snap.partner.name}  ${Math.ceil(snap.partner.hp)}${HEART} ${Math.ceil(snap.partner.shield)}${SHIELD} ${snap.partner.knocked ? 'DOWN' : ''}`
         : `${snap.partner.name} eliminated`;
     }
     const comp = $('compass');
@@ -677,14 +804,14 @@ export function createShell(bus) {
     const streakCls = r.streak >= 10 ? ' hot' : '';
     const parts = [
       '<div class="rhead-block">',
-      '<h3>Range<i>射場</i></h3>',
+      '<h3>Range<i>å „å </i></h3>',
       `<div class="rscore"><b>${r.score}</b><span>score</span></div>`,
-      row('Streak', r.streak ? `${r.streak}${r.bestStreak > r.streak ? ` · best ${r.bestStreak}` : ''}` : '—', `.rstreak${streakCls}`),
+      row('Streak', r.streak ? `${r.streak}${r.bestStreak > r.streak ? `   best ${r.bestStreak}` : ''}` : '—', `.rstreak${streakCls}`),
       '</div>',
     ];
 
     // --- ballistics ---------------------------------------------------
-    parts.push(`<div class="rsec">${row('Weapon', r.gunName)}${row('Base / rpm', `${r.base} · ${r.rpm}`)}`);
+    parts.push(`<div class="rsec">${row('Weapon', r.gunName)}${row('Base / rpm', `${r.base}   ${r.rpm}`)}`);
     // Spread is the number the crosshair is already scaling off, so showing it
     // turns "why did the crosshair bloom" into a number instead of a guess.
     parts.push(row('Spread', r.spread.toFixed(3)));
@@ -740,19 +867,73 @@ export function createShell(bus) {
     el.innerHTML = parts.join('');
   }
 
+  /*
+   * The minimap.
+   *
+   * Draws the real island, seen from above, cropped around the player, the way
+   * Fortnite's does. It used to be a blank disc with a few POI dots, which is a
+   * radar for a game that has an island in it: it could not tell you that a
+   * warehouse sits between you and the warehouse you cannot see, which is the
+   * only question a map gets asked in a fight.
+   *
+   * The image arrives from the match -- one orthographic pass over the finished
+   * world, built on first ask. Cached here so a dropped frame does not ask for
+   * it again, and never rebuilt, because the island does not move.
+   */
+  let mapShot = null;
   function drawMap(snap) {
     const w = map.width;
     const h = map.height;
+    if (!mapShot && window.__brMapImage) mapShot = window.__brMapImage();
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = 'rgba(40, 16, 48, 0.2)';
-    ctx.beginPath();
-    ctx.arc(w / 2, h / 2, w * 0.46, 0, Math.PI * 2);
-    ctx.fill();
-    // The map is a fraction of its old size, so the minimap zooms in to match —
-    // otherwise the whole island would fit inside a postage stamp.
-    const scale = w / 130;
-    const X = (x) => w / 2 + x * scale;
-    const Z = (z) => h / 2 + z * scale;
+
+    if (mapShot) {
+      /*
+       * Crop a fixed window of the island, centred on the player.
+       *
+       * The arithmetic has to go through the world radius, because that is what
+       * the image covers: a 1024px image spanning 2*radius metres is
+       * `1024 / (2*radius)` pixels per metre, and a 70m window is therefore
+       * 70 * that many pixels of source. The first version divided the player's
+       * world position by the *view width* instead, which is a different number
+       * entirely, and then drew the image one-to-one into a 160px box -- so the
+       * "minimap" was a 1:1 crop of the middle of the island, which is how it
+       * ended up a black wedge.
+       */
+      const R = (window.__brMapRadius && window.__brMapRadius()) || 62;
+      const view = 70;                       // metres across the minimap
+      const pxPerM = mapShot.width / (2 * R);
+      const srcSpan = view * pxPerM;         // source pixels to show
+      const mx = mapShot.width / 2 + (snap.px || 0) * pxPerM;
+      const mz = mapShot.height / 2 + (snap.pz || 0) * pxPerM;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2, w * 0.5, 0, Math.PI * 2);
+      ctx.clip();
+      // North-up. A map that spins with the camera is disorienting in exactly
+      // the way a compass is not, and the player-facing wedge below already
+      // answers "which way am I looking".
+      ctx.drawImage(
+        mapShot,
+        mx - srcSpan / 2, mz - srcSpan / 2, srcSpan, srcSpan,
+        0, 0, w, h,
+      );
+      ctx.restore();
+      // Dim the plate so the overlays drawn on top of it stay readable.
+      ctx.fillStyle = 'rgba(12, 6, 24, 0.30)';
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2, w * 0.5, 0, Math.PI * 2);
+      ctx.fill();    } else {
+      ctx.fillStyle = 'rgba(40, 16, 48, 0.35)';
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2, w * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const scale = w / 70;
+    const X = (x) => w / 2 + (x - (snap.px || 0)) * scale;
+    const Z = (z) => h / 2 + (z - (snap.pz || 0)) * scale;
+
     if (snap.zone) {
       ctx.strokeStyle = '#ff4fd8';
       ctx.lineWidth = 2;
@@ -760,47 +941,40 @@ export function createShell(bus) {
       ctx.arc(X(snap.zone.x), Z(snap.zone.z), snap.zone.r * scale, 0, Math.PI * 2);
       ctx.stroke();
     }
-    // The range replaces the island's landmarks with its own. POIS is a fixed
-    // list of island places, and plotting them on the firing range drew four
-    // markers for locations that do not exist — the same class of lie as a
-    // storm ring on a map with no storm. Downrange lanes are what is actually
-    // there, and a minimap of the range should show the range.
     if (snap.isRange) {
       ctx.strokeStyle = 'rgba(125, 255, 240, 0.55)';
       ctx.lineWidth = 1;
       for (const lane of snap.lanes || []) {
         const y = Z(lane.z);
-        // A full-width tick, so the lanes read as measured stations across the
-        // range rather than as a road running down it.
         ctx.beginPath();
         ctx.moveTo(6, y);
         ctx.lineTo(w - 6, y);
         ctx.stroke();
       }
-    } else {
-      for (const p of POIS) {
-        ctx.fillStyle = p.color;
-        ctx.fillRect(X(p.x) - 2, Z(p.z) - 2, 4, 4);
-      }
     }
-    for (const d of snap.dots) {
-      ctx.fillStyle = d.kind === 'you' ? '#fff' : d.kind === 'ally' ? '#3ee0ff' : d.kind === 'drop' ? '#ffe566' : '#ff4f9a';
-      ctx.beginPath();
-      ctx.arc(X(d.x), Z(d.z), d.kind === 'you' ? 4 : 3, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.save();
-    ctx.translate(X(snap.px), Z(snap.pz));
-    ctx.rotate(-snap.yaw);
+    /*
+     * No POI dots.
+     *
+     * The minimap is a render of the island, so every landmark in `pois` is
+     * already drawn -- at its true position, to scale, with its true footprint.
+     * Plotting a 2px dot on top of each one added no information and actively
+     * misled: a dot is a *point*, so "Sunset Plaza" read as one spot on the map
+     * while the plaza is a 20m square of buildings. Two markers for one place,
+     * one of them wrong.
+     *
+     * The compass keeps the names: bearing-to-a-name is a different question
+     * from where-the-geometry-is, and the strip still needs it.
+     */
+    // You. A wedge, not a dot, so "which way am I facing" is answerable
+    // without leaving the minimap.
     ctx.fillStyle = '#fff';
     ctx.beginPath();
-    ctx.moveTo(0, -6);
-    ctx.lineTo(4, 5);
-    ctx.lineTo(-4, 5);
+    ctx.moveTo(w / 2, h / 2 - 7);
+    ctx.lineTo(w / 2 - 5, h / 2 + 5);
+    ctx.lineTo(w / 2 + 5, h / 2 + 5);
+    ctx.closePath();
     ctx.fill();
-    ctx.restore();
   }
-
   function progress(p, caption) {
     $('load-fill').style.width = `${Math.round(p * 100)}%`;
     if (caption) $('load-title').textContent = caption;
@@ -808,7 +982,156 @@ export function createShell(bus) {
     $('load-caption').textContent = look.name;
   }
 
+
+  /* ------------------------------------------------------------------ bag --
+     The loadout screen. Owns its own open state rather than being a `screen`,
+     because it is a modal over `game` -- it has to come back to the match, not
+     to the locker, and treating it as a peer screen meant every setScreen()
+     caller had to know about a seventh state it would otherwise clobber.
+
+     It also pauses. Opening a bag mid-fight and reading a blurb while a bot
+     empties a magazine into you is not a difficulty setting, it is a bug. */
+  let bagOpen = false;
+  let bagSnap = null;
+  let dragFrom = -1;
+
+  const bagEl = $('bag');
+  const bagGrid = $('bag-grid');
+
+  function bagToggle(force) {
+    const next = force == null ? !bagOpen : !!force;
+    if (next === bagOpen) return;
+    bagOpen = next;
+    bagEl.hidden = !bagOpen;
+    bagEl.setAttribute('aria-hidden', String(!bagOpen));
+    dragFrom = -1;
+    // Pause only while actually open, and only when a match is running:
+    // pausing during the lobby or on the end screen would strand the player.
+    if (bagOpen && bus.paused && !bus.paused() && !bus.ended()) bus.pause();
+    else if (!bagOpen && bus.resume) bus.resume();
+    if (bagOpen && bagSnap) renderBag(bagSnap);
+  }
+
+  function renderBag(snap) {
+    bagSnap = snap;
+    if (!bagOpen) return;
+    const items = snap.items || [];
+    $('bag-count').textContent = `${snap.invUsed || 0}/${snap.invCap || items.length}`;
+    $('bag-count').classList.toggle('full', (snap.invUsed || 0) >= (snap.invCap || 0));
+
+    // Rebuild rather than diff. Six nodes, once per frame the bag is open,
+    // and it is only ever open while paused -- a diff here would be a lot of
+    // bookkeeping to save six element writes that nobody can see mid-drag.
+    bagGrid.textContent = '';
+    for (const it of items) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'bag-slot';
+      b.dataset.index = String(it.index);
+      if (it.empty) {
+        b.classList.add('empty');
+        b.setAttribute('aria-label', `Slot ${it.index + 1}, empty`);
+      } else {
+        b.dataset.rarity = it.rarity || 'common';
+        // Same per-thing art as the HUD, so an item is the same shape in both
+        // places. Learning "the tall gold one" in the bag and then meeting a
+        // different glyph in the corner of the screen teaches nothing.
+        const art = document.createElement('i');
+        art.className = 'ico-svg';
+        art.innerHTML = iconForThing(it.id, it.kind);
+        const name = document.createElement('span');
+        name.className = 'name';
+        name.textContent = it.name;
+        const kind = document.createElement('span');
+        kind.className = 'kind';
+        kind.textContent = it.kind;
+        b.append(art, name, kind);
+        if (it.count > 1) {
+          const c = document.createElement('span');
+          c.className = 'count';
+          c.textContent = `x${it.count}`;
+          b.append(c);
+        }
+        b.setAttribute('aria-label', `${it.name}, ${it.count}`);
+      }
+      if (it.on) b.classList.add('on');
+      if (it.index === dragFrom) b.classList.add('dragging');
+      b.addEventListener('click', () => bus.selectItem(it.index));
+      // HTML5 drag rather than pointer maths: a grid reorder only needs to
+      // answer "which slot did I drop on", and this gets that for free along
+      // with the drag image and the escape-hatch semantics.
+      b.draggable = !it.empty;
+      b.addEventListener('dragstart', (e) => {
+        dragFrom = it.index;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(it.index));
+      });
+      b.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        b.classList.add('drop-target');
+      });
+      b.addEventListener('dragleave', () => b.classList.remove('drop-target'));
+      b.addEventListener('drop', (e) => {
+        e.preventDefault();
+        b.classList.remove('drop-target');
+        if (dragFrom < 0 || dragFrom === it.index) return;
+        bus.moveItem(dragFrom, it.index);
+        dragFrom = -1;
+      });
+      b.addEventListener('dragend', () => { dragFrom = -1; });
+      bagGrid.append(b);
+    }
+
+    const sel = items.find((i) => i.on && !i.empty) || items.find((i) => !i.empty);
+    const d = $('bag-detail');
+    d.textContent = '';
+    if (!sel) {
+      const p = document.createElement('p');
+      p.className = 'bag-empty';
+      p.textContent = 'Nothing carried. Loot chests and floor spawns around the island.';
+      d.append(p);
+    } else {
+      const h = document.createElement('h4');
+      h.textContent = sel.name;
+      const r = document.createElement('div');
+      r.className = 'rarity';
+      r.textContent = RARITY[sel.rarity]?.label || sel.rarity;
+      r.style.color = RARITY[sel.rarity]?.color || '#fff';
+      const spec = ITEMS[sel.id] || {};
+      const eff = document.createElement('p');
+      eff.className = 'effect';
+      const bits = [];
+      if (spec.hp) bits.push(`+${spec.hp} HP over ${spec.time}s`);
+      if (spec.shield) bits.push(`+${spec.shield} shield over ${spec.time}s`);
+      if (spec.kind === 'grenade') bits.push(`Thrown, ${spec.time}s fuse`);
+      if (spec.kind === 'revive') bits.push('Self-revive once');
+      eff.textContent = bits.join(' - ') || 'Consumable.';
+      d.append(h, r, eff);
+    }
+    $('bag-use').disabled = !sel;
+    $('bag-drop').disabled = !sel;
+    $('bag-sort').disabled = !(snap.invUsed || 0);
+  }
+
+  $('bag-use').addEventListener('click', () => bus.useItem());
+  $('bag-drop').addEventListener('click', () => bus.dropItem());
+  $('bag-sort').addEventListener('click', () => bus.sortItems());
+  // Clicking the backdrop closes, clicking the panel does not. Without the
+  // stopPropagation a click anywhere in the panel bubbles to the backdrop and
+  // the bag closes the instant you press USE.
+  bagEl.addEventListener('click', (e) => { if (e.target === bagEl) bagToggle(false); });
+  bagEl.querySelector('.bag-panel').addEventListener('click', (e) => e.stopPropagation());
   function pump(input) {
+    // While the bag is up it swallows navigation entirely, including the
+    // generic confirm/activate path below. Without that, a stick press meant to
+    // pick a slot would also fire the USE button on the same frame.
+    if (bagOpen) {
+      if (input.uiDown || input.uiRight) bus.cycleItem(1);
+      if (input.uiUp || input.uiLeft) bus.cycleItem(-1);
+      if (input.confirmPressed) bus.useItem();
+      return;
+    }
     if (input.typing && document.activeElement && document.activeElement.tagName === 'INPUT') return;
     if (screen === 'splash' || screen === 'menu' || screen === 'locker' || screen === 'viewer' || screen === 'armory' || screen === 'settings' || screen === 'pause' || (screen === 'game' && bus.ended())) {
       if (input.uiDown || input.uiRight) moveFocus(1);
@@ -821,5 +1144,13 @@ export function createShell(bus) {
   document.body.classList.toggle('touch-on', matchMedia('(pointer: coarse)').matches);
   setScreen('splash');
 
-  return { setScreen, hud, onEvent, toast, paintLocker, paintSettings, progress, pump, screen: () => screen };
+  return {
+    setScreen, hud, onEvent, toast, paintLocker, paintSettings, progress, pump,
+    screen: () => screen,
+    /** Open/close the bag. Safe to call when no match is running. */
+    toggleBag: bagToggle,
+    bagOpen: () => bagOpen,
+  };
 }
+
+

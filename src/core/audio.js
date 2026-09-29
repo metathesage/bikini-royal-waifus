@@ -123,6 +123,16 @@ export function createAudio(getSettings) {
       revive: [660, 880, 1175],
       emote: [740, 988, 1318],
       pickup: [988, 1318],
+      // Drop is a falling pair, not a rising one: pickup chimes up, drop falls.
+      // Reusing `pickup` for both made "I put this down" and "I picked this up"
+      // the exact same sound, which is the worst possible feedback for the one
+      // action the player takes to free a slot.
+      drop: [740, 523],
+      // Countdown tick and the launch sting. The tick rises a semitone per count
+      // rather than repeating one pitch, so ten identical beeps do not fuse into
+      // a single noise -- the pitch itself carries the approach to zero.
+      tick: [660],
+      launch: [196, 262, 330, 392, 523],
     };
     const notes = sets[kind] || [880];
     notes.forEach((f, i) => tone(f, 0.12, 'sine', 0.08, master));

@@ -138,8 +138,8 @@ export function createStudio(canvas, renderer, look) {
   /*
    * Screen-space anchor for the drop-ship, in camera-local units.
    *
-   * Sized off the frustum at UFO_D: half-width  = D*tan(31.5°) ≈ 9.8 and
-   * half-height = D*tan(19°)  ≈ 5.5 for a 16:9 viewport, so RIGHT 4.3 lands the
+   * Sized off the frustum at UFO_D: half-width  = D*tan(31.5 ) ≈ 9.8 and
+   * half-height = D*tan(19 )  ≈ 5.5 for a 16:9 viewport, so RIGHT 4.3 lands the
    * hull at ~72% across and UP 2.4 at ~28% down — clear of the copy column on the
    * left, the character in the middle and the wallet chips at the very top.
    */

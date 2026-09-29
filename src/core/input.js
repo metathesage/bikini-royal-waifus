@@ -109,6 +109,12 @@ export function createInput(getSettings) {
     let dash = false;
     let use = false;
     let swap = false;
+    // Drop and the bag screen are deliberately not in `bindings`: they are not
+    // combat verbs, they are loadout verbs, and a player rebinding their fire
+    // button should not silently move where the drop key is. Fixed keys, both
+    // with pad equivalents, and both ignored while a menu is open.
+    let drop = false;
+    let inv = false;
     let inspect = false;
     let emote = false;
     let score = false;
@@ -137,6 +143,8 @@ export function createInput(getSettings) {
       dash = keys.has(b.dash);
       use = keys.has(b.use);
       swap = keys.has(b.swap);
+      drop = keys.has('KeyG');
+      inv = keys.has('Tab');
       inspect = keys.has(b.inspect);
       emote = keys.has(b.emote);
       score = keys.has(b.score);
@@ -202,8 +210,15 @@ export function createInput(getSettings) {
       // wants a deliberate, hard-to-hit-by-accident input.
       if (down(11)) ability = true;
       if (held(10)) sprint = true;
-      if (down(8)) inspect = true;
       if (down(9)) pause = true;
+      // Back/Select (8) opens the bag. It is the conventional home for a
+      // loadout screen, and the alternative -- stealing a combat button from a
+      // layout with no spare -- cost more than it bought.
+      if (down(8)) inv = true;
+      // Inspect moves to the LB+RB chord. Every single button on a standard pad
+      // is already a combat or menu verb, and inspect is the one of them that
+      // can afford to need two fingers, so it takes the only free combination.
+      if (down(4) && down(5)) inspect = true;
       if (down(12)) { uiY -= 1; itemPrev = true; }
       if (down(13)) { uiY += 1; itemNext = true; }
       if (down(14)) { uiX -= 1; emote = true; }
@@ -260,6 +275,8 @@ export function createInput(getSettings) {
       emotePressed: edge('emote', emote),
       scoreHeld: score,
       pausePressed: edge('pause', pause),
+      dropPressed: edge('drop', drop),
+      invPressed: edge('inv', inv),
       confirmPressed: edge('confirm', confirm),
       backPressed: edge('back', back),
       uiLeft: edge('uiL', uiX < -0.5),

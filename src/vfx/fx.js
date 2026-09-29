@@ -117,8 +117,38 @@ export function createFx(scene) {
     m.mark.scale.setScalar(m.ring * 1.4);
   }
 
+  /**
+   * Take a free particle, or nothing.
+   *
+   * This used to be `pool.find(free) || pool[0]`. The fallback is the whole
+   * problem: once the pool was saturated it silently *reused a live
+   * particle*, teleporting a spark that was halfway through its arc back to
+   * the muzzle. A shotgun blast asks for 8 pellets x 6 sparks plus a 4-spark
+   * muzzle flash in a single frame, so with 80 sparks the pool was saturated
+   * essentially always and the screen filled with particles snapping back to
+   * the gun. Dropping the request instead is both cheaper and correct: a
+   * missing spark is invisible, a teleporting one is not.
+   */
   function grab(pool) {
-    return pool.find((p) => p.life <= 0) || pool[0];
+    return pool.find((p) => p.life <= 0) || null;
+  }
+
+  /**
+   * Per-frame particle budget.
+   *
+   * The pools are already a fixed size, so this is not about protecting them
+   * -- it is about protecting the *frame*. Combat funnels every effect through
+   * here at once: a shotgun alone asks for ~52 particles in one frame, and
+   * with 43 bots shooting it goes to hundreds. Refusing the surplus keeps the
+   * cost of a busy firefight flat instead of spiking, which is the difference
+   * between gunplay that stays readable and gunplay that turns to soup.
+   */
+  const FRAME_SPARK_BUDGET = 40;
+  let frameSpend = 0;
+  function spend(n = 1) {
+    if (frameSpend + n > FRAME_SPARK_BUDGET) return false;
+    frameSpend += n;
+    return true;
   }
 
   /**
@@ -135,7 +165,11 @@ export function createFx(scene) {
   function burst(pos, color, n = 10, speed = 4) {
     if (!usable(pos)) return;
     for (let i = 0; i < n; i++) {
+      // Budget first, pool second. A saturated frame yields a proportionally
+      // smaller burst rather than none at all, so an impact still reads.
+      if (!spend()) break;
       const s = grab(sparks);
+      if (!s) break;
       s.life = 0.35 + Math.random() * 0.25;
       s.m.visible = true;
       s.m.position.copy(pos);
@@ -149,6 +183,7 @@ export function createFx(scene) {
     if (!usable(pos)) return;
     burst(pos, '#ff4f9a', 8, 3);
     const b = grab(bits);
+    if (!b) return;
     b.life = 0.6;
     b.m.visible = true;
     b.m.position.copy(pos);
@@ -159,6 +194,8 @@ export function createFx(scene) {
   function tracer(a, b, color = '#ffe6f6') {
     if (!usable(a) || !usable(b)) return;
     const line = grab(lines);
+    // A tracer that cannot be drawn is dropped, not stolen from a live one.
+    if (!line) return;
     line.life = 0.08;
     line.m.visible = true;
     line.m.material.color.set(color);
@@ -186,6 +223,7 @@ export function createFx(scene) {
     if (!usable(origin)) return;
     for (let i = 0; i < 24; i++) {
       const b = grab(bits);
+      if (!b) break;
       b.life = 1.4;
       b.m.visible = true;
       b.m.position.copy(origin);
@@ -361,6 +399,7 @@ export function createFx(scene) {
   function ring(pos, color = '#ff4f9a', flat = false) {
     if (!usable(pos)) return;
     const r = grab(rings);
+    if (!r) return;
     r.life = r.total;
     r.m.visible = true;
     r.m.position.copy(pos);
@@ -382,6 +421,7 @@ export function createFx(scene) {
     const tex = numberTexture(value, color);
     if (!tex) return;
     const n = grab(numbers);
+    if (!n) return;
     n.life = 0.95;
     n.vy = 1.5;
     n.drift = (Math.random() - 0.5) * 0.35;
@@ -419,6 +459,10 @@ export function createFx(scene) {
   }
 
   function update(dt) {
+    // The budget is per frame, so it is refunded here rather than in each
+    // effect. Resetting on update (not on a timer) means the cap tracks the
+    // frame the game is actually drawing.
+    frameSpend = 0;
     for (const s of sparks) {
       if (s.life <= 0) continue;
       s.life -= dt;

@@ -1,11 +1,11 @@
 export const MODELS = [
-  { id: 'kasumi_sailor', name: 'Kasumi Sailor', rarity: 'legendary', blurb: 'Rigged import. Walks, aims and flinches.' },
-  { id: 'scifi_soldier', name: 'Scifi Soldier', rarity: 'epic', blurb: 'Rigged import. Aims like she means it.' },
-  { id: 'mai_maid', name: 'Mai Maid', rarity: 'legendary', blurb: 'Rigged import with 13 animation clips.' },
-  { id: 'lucy_edgerunner', name: 'Lucy Edgerunner', rarity: 'mythic', blurb: 'Imported GLB model. Fixed look.' },
-  { id: 'citlali', name: 'Citlali', rarity: 'epic', blurb: 'Imported GLB model. Fixed look.' },
-  { id: 'elaina_witch', name: 'Elaina', rarity: 'legendary', blurb: 'Imported GLB model. Fixed look.' },
-  { id: 'procedural', name: 'Procedural Cutie', rarity: 'common', blurb: 'The classic locker-built look. Full customization.' },
+  { id: 'sofia_anime', name: 'Sofia', rarity: 'mythic', animated: true, blurb: '178 clips. Bow, sword, climb, cheer -- the best-equipped fighter here.' },
+  { id: 'ual1_standard', name: 'Combatant', rarity: 'epic', animated: true, blurb: '43 combat clips: pistol shoot, reload, aim, sword combos, roll.' },
+  { id: 'miyazawa_fighter', name: 'Miyazawa', rarity: 'epic', animated: true, blurb: '11 lobby clips with a real weapon-change transition.' },
+  { id: 'dragon', name: 'Dragon', rarity: 'legendary', animated: true, blurb: 'Wings, and a glide that the drop actually uses.' },
+  { id: 'bald_eagle', name: 'Eagle', rarity: 'epic', animated: true, blurb: 'Flap, glide, idle, walk. Reads clearly from a distance.' },
+  { id: 'fox', name: 'Fox', rarity: 'rare', animated: true, blurb: '14 clips including run, sneak, alert and a bite.' },
+  { id: 'soldier_rigged', name: 'Soldier', rarity: 'rare', animated: true, blurb: '32 clips, 0.21 MB. The one every cheap bot wears.' },
 ];
 
 /**
@@ -251,6 +251,15 @@ export const DEFAULT_SETTINGS = {
   text: 1,
   touch: false,
   bloom: true,
+  /**
+   * Cheat: the player takes no damage.
+   *
+   * A settings entry rather than a console command because there is no console
+   * -- this is how you actually turn it on. It lives with the rest of the
+   * options and persists, so a tester can leave it on and forget about it,
+   * which is also the trap: nothing warns you it is active except the HUD.
+   */
+  god: false,
   bindings: {
     sprint: 'ShiftLeft',
     jump: 'Space',

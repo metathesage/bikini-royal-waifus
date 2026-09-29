@@ -3,7 +3,7 @@ import { selfTestBasis } from './core/basis.js';
 import { createInput } from './core/input.js';
 import { createAudio } from './core/audio.js';
 import { loadSave, writeSave, snapshotLook, progress as awardProgress } from './core/store.js';
-import { rollLook, DEFAULT_SETTINGS, addPsxModels } from './data/catalog.js';
+import { rollLook, DEFAULT_SETTINGS } from './data/catalog.js';
 import { candidateLook, candidateById } from './data/candidates.js';
 import { primePsxRoster, assetReport } from './data/assets.js';
 import { createStudio } from './scene/studio.js';
@@ -63,7 +63,7 @@ function rebuildHero() {
 const shell = createShell({
   audio: () => audio.unlock(),
   look: () => look,
-  settings: () => settings, // state getter ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â shell reads this; navigation uses openSettings().
+  settings: () => settings, // state getter  Æ  † ™—„—Æ —Å—Æ  † ™—Æ —Å—Æ —Å—Æ  † ™—Æ —…—Æ —Å— shell reads this; navigation uses openSettings().
   presets: () => presets,
   paused: () => paused,
   ended,
@@ -78,7 +78,7 @@ const shell = createShell({
   // key from `stats`, which the end screen reads for this match's numbers.
   progression: () => stats,
   // Read by the HUD's directional damage indicators, which animate on every
-  // frame including in the menu ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â so they must survive match being null.
+  // frame including in the menu  Æ  † ™—„—Æ —Å—Æ  † ™—Æ —Å—Æ —Å—Æ  † ™—Æ —…—Æ —Å— so they must survive match being null.
   playerPos: () => (match ? { x: match.player.pos.x, z: match.player.pos.z } : null),
   playerYaw: () => (match ? match.player.yaw : 0),
   boot() { audio.unlock(); go('menu'); },
@@ -103,6 +103,13 @@ const shell = createShell({
   menu() { returnTo = null; paused = false; modeStudio('menu'); },
   back,
   resume() { paused = false; screen = 'game'; shell.setScreen('game'); },
+  /**
+   * Freeze the simulation without changing screen. The bag needs exactly this
+   * and must not use the pause *screen*: the player should come back to the
+   * fight, not to a menu they then have to dismiss.
+   */
+  pause() { if (match && !ended() && !paused) paused = true; },
+  toggleBag() { shell.toggleBag(); },
   randomize() {
     const name = look.name;
     look = { ...rollLook(Math.random), name };
@@ -179,7 +186,7 @@ const shell = createShell({
     rebuildHero();
     persist();
     if (screen === 'locker') shell.paintLocker();
-    shell.toast(`Candidate ${c.candidate} · ${c.codename} equipped — ${c.ability.name}`);
+    shell.toast(`Candidate ${c.candidate}   ${c.codename} equipped — ${c.ability.name}`);
   },
   light(id) { studio.setLighting(id === 'sunset' ? 'sunset' : id); },
   anim(id) {
@@ -209,17 +216,23 @@ const shell = createShell({
     shell.paintSettings();
   },
   selectItem(i) { if (match) match.selectItem(i); },
+  cycleItem(d) { if (match) match.cycleItem(d); },
+  useItem() { if (match) match.useItem(); },
+  dropItem() { if (match) match.dropItem(); },
+  sortItems() { if (match) match.sortItems(); },
+  moveItem(a, b) { if (match) match.moveItem(a, b); },
+  paused() { return !!paused; },
+  ended() { return !!(match && match.ended && match.ended()); },
 });
 
-// Pull the rigged roster in once the shell exists: the locker needs it to list
-// the characters, and the match needs it to give each bot her own body. Both
-// tolerate it arriving late, so this is fire-and-forget with a UI refresh.
-primePsxRoster().then((roster) => {
-  if (!roster || !roster.length) return;
-  addPsxModels(roster);
-  shell.paintLocker();
-});
-
+// The PSX roster is no longer pulled. Those 45 Mixamo FBX files ship skeletons
+// but no animation clips, so every one of them is posed by the procedural rig
+// and slides instead of stepping -- which is the exact "unanimated characters"
+// this build was asked to drop. Leaving the call in place meant the locker
+// repainted with 45 statues and the drop paid for 45 FBX downloads that nothing
+// animated. The cast is now the seven clip-driven models in CHARACTERS; if a
+// genuinely animated FBX roster ever lands, re-add this alongside a clip-count
+// check, not a joint-count one.
 function go(name) {
   screen = name;
   paused = false;
@@ -269,15 +282,21 @@ function back() {
  * Which map to build.
  *
  * `?map=graybox` loads the proving ground instead of the island: flat measured
- * terrain, stationary dummies, every gun on a plinth and no storm. The map is
- * read from the URL rather than from the save file so it cannot be written into
- * a player's profile by accident, and so it behaves identically for a person
- * with a browser and for the headless render harness in tools/. The menu's
- * "Range (dev)" button just sets this parameter and reloads.
+ * terrain, stationary dummies, every gun on a plinth and no storm.
+ * `?map=sakura` loads Sakura Isle, the six-district blockout. It is a real
+ * battle-royale map -- real drop, real storm, real bots -- built entirely from
+ * untextured primitives, so it loads instantly and costs no assets.
+ *
+ * The map is read from the URL rather than from the save file so it cannot be
+ * written into a player's profile by accident, and so it behaves identically
+ * for a person with a browser and for the headless render harness in tools/.
+ * The menu's "Range (dev)" button just sets this parameter and reloads.
  */
 function currentMap() {
   const p = new URLSearchParams(location.search).get('map');
-  return p === 'graybox' || p === 'range' ? 'graybox' : 'island';
+  if (p === 'graybox' || p === 'range') return 'graybox';
+  if (p === 'sakura') return 'sakura';
+  return 'island';
 }
 
 function startMatch() {
@@ -427,7 +446,21 @@ function frame(now) {
   const actions = input.update(dt);
   input.setCapture(screen === 'game' && match && match.setCaptureWanted());
 
-  if (screen === 'pause' && (actions.pausePressed || actions.backPressed)) {
+  // The bag is a modal over the game screen, so it is handled before the
+  // pause/menu branch: Escape has to close the bag rather than drop the player
+  // a level further back into the pause menu, and Tab has to reach the shell
+  // instead of being swallowed by the generic activate path.
+  if (shell.bagOpen()) {
+    if (actions.invPressed || actions.pausePressed || actions.backPressed) {
+      shell.toggleBag(false);
+      document.pointerLockElement && document.exitPointerLock();
+    } else {
+      shell.pump(actions);
+    }
+  } else if (screen === 'game' && actions.invPressed && !ended()) {
+    shell.toggleBag(true);
+    document.pointerLockElement && document.exitPointerLock();
+  } else if (screen === 'pause' && (actions.pausePressed || actions.backPressed)) {
     paused = false;
     screen = 'game';
     shell.setScreen('game');
@@ -812,6 +845,15 @@ window.__brDiag = () => {
  * looks identical in a screenshot and completely different here.
  */
 window.__brBots = () => (match ? match.debugBots() : null);
+window.__brGiveItem = (id, n) => (match ? match.debugGiveItem(id, n) : { ok: false, reason: 'no-match' });
+window.__brInv = () => (match ? match.debugInventory() : null);
+// The top-down island image for the HUD minimap, built on first ask.
+window.__brMapImage = () => (match && match.mapImage ? match.mapImage() : null);
+// World radius that image covers, in metres. The minimap crop has to convert
+// metres-to-pixels with it; guessing that ratio is how the first version drew a
+// one-to-one crop of a 1024px image into a 160px box.
+window.__brMapRadius = () => (match && match.mapRadius ? match.mapRadius() : 0);
+window.__brOpenBag = () => { shell.toggleBag(true); return shell.bagOpen(); };
 
 /** The per-actor rig truth: which model, is it rigged, is it on screen. */
 window.__brCast = () => (match && match.debugCast ? match.debugCast() : null);

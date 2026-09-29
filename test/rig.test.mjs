@@ -93,8 +93,8 @@ check(rigs.length === roster.length, `only ${rigs.length}/${roster.length} roste
 /* The single most damaging bug this file guards against: cloning a rigged
    character in a way that bakes the SkinnedMesh into a static Mesh. Nothing
    throws, the rig builder still finds bones, and 43 bots stand still while
-   every test passes. So assert the mesh type, the bone identity, and â€” the
-   part that actually matters â€” that posing the clone moves the clone. */
+   every test passes. So assert the mesh type, the bone identity, and    the
+   part that actually matters    that posing the clone moves the clone. */
 {
   const raw = fs.readFileSync(ROOT + roster[0].url.replace(/^\//, ''));
   const parse = () => new FBXLoader().parse(raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength));
@@ -114,7 +114,7 @@ check(rigs.length === roster.length, `only ${rigs.length}/${roster.length} roste
   };
   const aMesh = skinned(a)[0];
   const bMesh = skinned(b)[0];
-  check(!!aMesh, 'clone is not a SkinnedMesh â€” the rig was baked into a static mesh');
+  check(!!aMesh, 'clone is not a SkinnedMesh    the rig was baked into a static mesh');
   check(!!bMesh, 'second clone is not a SkinnedMesh');
   if (aMesh && bMesh) {
     check(aMesh.skeleton !== bMesh.skeleton, 'clones share one skeleton object');
@@ -218,7 +218,7 @@ if (rigs.length) {
   const crouchY = hipY();
   check(crouchY < standY - 0.05, `crouch did not lower the hips (${standY.toFixed(3)} -> ${crouchY.toFixed(3)})`);
 
-  // Aiming must bring the weapon hand forward Ã¢â‚¬â€ the whole point of making the
+  // Aiming must bring the weapon hand forward — the whole point of making the
   // bots visibly shoot back.
   for (let i = 0; i < 20; i++) rig.update(1 / 60, { speed: 0 });
   const idleFwd = handForwardness(rig);

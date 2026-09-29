@@ -11,7 +11,7 @@ import * as THREE from 'three';
  * guessing Euler angles: a bone's rest direction is simply its offset from its
  * parent, so we can ask "point this bone along this direction" and solve for
  * the local quaternion that achieves it. That is stable whether the rig was
- * authored T-pose or A-pose, and it degrades gracefully â€” a bone we cannot
+ * authored T-pose or A-pose, and it degrades gracefully    a bone we cannot
  * identify simply never moves.
  *
  * Spine and head bones are the exception: their child offset is tiny, so aiming
@@ -74,7 +74,7 @@ export function aimBone(rig, bone, dx, dy, dz) {
   bone.quaternion.copy(_q).multiply(r.quat);
 }
 
-/** Small Euler offset from rest â€” for spine/head bones and clavicles. */
+/** Small Euler offset from rest    for spine/head bones and clavicles. */
 export function twistBone(rig, bone, x, y, z) {
   if (!bone) return;
   const r = rig.rest.get(bone);

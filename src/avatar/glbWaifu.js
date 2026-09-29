@@ -46,6 +46,23 @@ export function createGlbWaifu(look, detail = 'full') {
   let fireFlag = false;
   /** Set for one frame when this actor is hit. */
   let hitFlag = false;
+  /**
+   * Group-level recoil and flinch timers.
+   *
+   * These are the fix for "the characters do not shoot". `firing` used to be
+   * consumed only inside the `rig && !useClips` branch, so on every model
+   * driven by real clips -- which is now all of them -- the fire flag was set
+   * by match.js, never read, and (because the clearing line sat in that same
+   * branch) never reset either. The character played an idle clip and did not
+   * flinch while emptying a magazine.
+   *
+   * A bone-level reaction cannot be added on the clip path, because the mixer
+   * owns the bones and fighting it would tear the skeleton apart. So the kick
+   * is applied to `visual` -- the parent of the whole model -- which is free
+   * no matter who is driving the joints, and reads as recoil at any distance.
+   */
+  let recoilT = 0;
+  let flinchT = 0;
 
   /** Live download state, read by the studio to show progress / failure. */
   const load = { url: null, state: 'idle', progress: 0, error: null };
@@ -219,8 +236,8 @@ export function createGlbWaifu(look, detail = 'full') {
         emote: pose !== 'idle' && pose !== 'walk' && pose !== 'run',
         lookPitch: ctx.lookPitch || 0,
       });
-      fireFlag = false;
-      hitFlag = false;
+      // `fireFlag`/`hitFlag` are cleared further down, after both the rig and the
+      // mixer branches, so that a clip-driven model clears them too.
       // Whole-body orientation still lives on the outer visual group.
       if (!posing) {
         visual.rotation.z = Math.sin(rig.time * (speed > 0.35 ? 5 : 1.5)) * (speed > 0.35 ? 0.04 : 0.015);
@@ -282,6 +299,32 @@ export function createGlbWaifu(look, detail = 'full') {
     } else if (pose === 'spin') {
       spin += 0.08;
       visual.rotation.y = spin;
+    }
+
+    /**
+     * Weapon recoil and hit flinch, applied to the whole model.
+     *
+     * Runs after the rig/mixer branch so it is additive: whoever is driving
+     * the bones, the character still kicks. `fire()` and `flinch()` arm it.
+     *
+     * This block is also why the flags now clear unconditionally. They used to
+     * be cleared inside the rig branch only, so on a clip-driven model the
+     * first `fire()` latched `fireFlag` on forever and nothing read it anyway.
+     */
+    if (fireFlag) { recoilT = 1; fireFlag = false; }
+    if (hitFlag) { flinchT = 1; hitFlag = false; }
+    if (recoilT > 0) recoilT = Math.max(0, recoilT - dt * 7);
+    if (flinchT > 0) flinchT = Math.max(0, flinchT - dt * 5.5);
+    if (recoilT > 0 || flinchT > 0) {
+      const k = recoilT * recoilT;          // quadratic: snappy, then settles
+      const f = flinchT * flinchT;
+      visual.position.z = -0.075 * k;        // drives back into the shot
+      visual.position.y = 0.012 * k - 0.02 * f;
+      visual.rotation.x = 0.16 * k - 0.12 * f;
+    } else if (visual.position.z !== 0) {
+      // Snap back to neutral once the kick is over, otherwise the character
+      // spends the rest of the match standing slightly behind where it should.
+      visual.position.z = 0;
     }
 
     if (model) {

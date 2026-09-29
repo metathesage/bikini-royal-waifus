@@ -13,47 +13,14 @@ function url(...parts) {
 
 /** Self-contained character GLBs served from public/assets/characters. */
 export const CHARACTERS = {
-  girl_sexy: { id: 'girl_sexy', name: 'Girl Sexy', rarity: 'epic', url: '/assets/characters/girl_sexy.glb' },
-  goddess_of_victory_nikke: { id: 'goddess_of_victory_nikke', name: 'Nayuta Wu Wei', rarity: 'legendary', url: '/assets/characters/goddess_of_victory_nikke_-_nayuta_wu_wei_ver..glb' },
-  venus_goddess: { id: 'venus_goddess', name: 'Venus Goddess', rarity: 'legendary', url: '/assets/characters/venus_goddess..glb' },
-  alice_nikke: { id: 'alice_nikke', name: 'Alice NIKKE', rarity: 'mythic', url: '/assets/characters/alice_-_nikke_goddess_of_victory.glb' },
-  bunny_girl_dark: { id: 'bunny_girl_dark', name: 'Bunny Noir', rarity: 'epic', url: '/assets/characters/bunny_girl_dark.glb' },
-  chicken_gun_fruzer: { id: 'chicken_gun_fruzer', name: 'Fruzer Cyberpunk', rarity: 'rare', url: '/assets/characters/chicken_gun_fruzer_cyberpunk.glb' },
-  elaina_witch: { id: 'elaina_witch', name: 'Elaina', rarity: 'legendary', url: '/assets/characters/elaina_-_the_witchs_journey.glb' },
-  lucy_wuthering: { id: 'lucy_wuthering', name: 'Lucy Waves', rarity: 'mythic', url: '/assets/characters/wuthering_waves_lucy_downloadable.glb' },
-  jemadia_open_data: { id: 'jemadia_open_data', name: 'Open Data', rarity: 'rare', url: '/assets/characters/jemadia_suekentonmiller_grishin2014_open_data (1).glb' },
-  the_lament: { id: 'the_lament', name: 'The Lament', rarity: 'legendary', url: '/assets/characters/the_lament_-_destiny_2.glb' },
-  angle_fantasy: { id: 'angle_fantasy', name: 'Angle Fantasy', rarity: 'epic', url: '/assets/characters/angle_fantasy_ai.glb' },
-  chaperone: { id: 'chaperone', name: 'Chaperone', rarity: 'rare', url: '/assets/characters/chaperone_from_destiny_2.glb' },
-  citlali: { id: 'citlali', name: 'Citlali', rarity: 'epic', url: '/assets/characters/citlali.glb' },
-  black_panther: { id: 'black_panther', name: 'Black Panther', rarity: 'rare', url: '/assets/characters/black_panther.glb' },
-  lucy_edgerunner: { id: 'lucy_edgerunner', name: 'Lucy Edgerunner', rarity: 'mythic', url: '/assets/characters/lucy_edgerunner.glb' },
-  lucy_edgerunner_2: { id: 'lucy_edgerunner_2', name: 'Lucy Edgerunner II', rarity: 'legendary', url: '/assets/characters/lucy_edgerunner (2).glb' },
-  // Extra rigged heroes. Kasumi and the Scifi Soldier carry no clips, so they are
-  // driven entirely by the procedural rig; Mai Maid and Miyazawa ship real
-  // lobby animation clips as well.
-  kasumi_sailor: { id: 'kasumi_sailor', name: 'Kasumi Sailor', rarity: 'legendary', url: '/assets/characters/Kasumi_Tactical_Sailor.glb' },
-  kasumi_sailor_hd: { id: 'kasumi_sailor_hd', name: 'Kasumi HD', rarity: 'mythic', url: '/assets/characters/Kasumi_Tactical_Sailor_AAA_100k.glb' },
-  scifi_soldier: { id: 'scifi_soldier', name: 'Scifi Soldier', rarity: 'epic', url: '/assets/characters/SciFi_Waifu_Soldier.glb' },
-  mai_maid: { id: 'mai_maid', name: 'Mai Maid', rarity: 'legendary', url: '/assets/characters/mai_maid_-bourin.glb' },
-  miyazawa_idol: { id: 'miyazawa_idol', name: 'Miyazawa Idol', rarity: 'epic', url: '/assets/maps/miyazawa_blank_city.glb' },
-
-  // Models that ship real animation clips, from the sibling spooky-waifu
-  // project. These are the only cast members driven by an AnimationMixer rather
-  // than the procedural rig, so they are the ones that actually walk with a
-  // weight shift instead of sliding.
-  //
-  // soldier_rigged is the one to reach for first: 0.21 MB and 33 clips covering
-  // the whole game loop (idle, walk, sprint, jump, fall, crouch, sit, die,
-  // pick-up, three attack types, and holding poses). ual1_standard is the
-  // Universal Animation Library's full combat set - pistol shoot/reload/aim,
-  // sword combos, sprint, roll, swim - at 65 bones, and is the better fit for
-  // anyone who should look like they are fighting.
+  sofia_anime: { id: 'sofia_anime', name: 'Sofia', rarity: 'mythic', url: '/assets/characters/animated/sofia_anime.glb' },
   soldier_rigged: { id: 'soldier_rigged', name: 'Soldier', rarity: 'rare', url: '/assets/characters/animated/soldier_rigged.glb' },
   ual1_standard: { id: 'ual1_standard', name: 'Combatant', rarity: 'epic', url: '/assets/characters/animated/ual1_standard.glb' },
-  miyazawa_fighter: { id: 'miyazawa_fighter', name: 'Miyazawa Fighter', rarity: 'epic', url: '/assets/characters/animated/miyazawa_fighter.glb' },
+  miyazawa_fighter: { id: 'miyazawa_fighter', name: 'Miyazawa', rarity: 'epic', url: '/assets/characters/animated/miyazawa_fighter.glb' },
+  fox: { id: 'fox', name: 'Fox', rarity: 'rare', url: '/assets/characters/animated/fox.glb' },
+  dragon: { id: 'dragon', name: 'Dragon', rarity: 'legendary', url: '/assets/characters/animated/dragon.glb' },
+  bald_eagle: { id: 'bald_eagle', name: 'Eagle', rarity: 'epic', url: '/assets/characters/animated/bald_eagle.glb' },
 };
-
 /** Weapon viewmodel GLBs (Styloo normal-version) per gun id. */
 export const WEAPON_GLB = {
   ar: '/assets/weapons/ak47.glb',
@@ -88,12 +55,13 @@ export const MELEE_GLB = {
  * an actual shipped model with real textures — never the procedural fallback.
  */
 export const SANDBOX_CAST = [
-  'kasumi_sailor',
-  'scifi_soldier',
-  'mai_maid',
-  'lucy_edgerunner',
-  'citlali',
-  'elaina_witch',
+  'sofia_anime',
+  'soldier_rigged',
+  'ual1_standard',
+  'miyazawa_fighter',
+  'fox',
+  'dragon',
+  'bald_eagle',
 ];
 
 /** Small shared scene environment so PBR metals have something to reflect. */
@@ -129,7 +97,7 @@ const KAYKIT = '/assets/props/KayKit_HalloweenBits_1.0_FREE/KayKit_HalloweenBits
 const GRAVEYARD = '/assets/props/VoxelGraveyard_Assets/Assets';
 
 /**
- * "Free 3D Modular Game Assets For Prototyping" â€” FBX pieces used to build the
+ * "Free 3D Modular Game Assets For Prototyping"    FBX pieces used to build the
  * lobby platform, drop-ship, market stalls, cover crates and POI structures.
  * Keys are semantic so map.js never hardcodes a filename.
  */
@@ -169,7 +137,7 @@ export const MODULAR_FBX = {
   door: `${url(MODULAR)}/door.fbx`,
 };
 
-/** KayKit Halloween Bits â€” gltf/.bin pairs, used for dressing POIs and cover. */
+/** KayKit Halloween Bits    gltf/.bin pairs, used for dressing POIs and cover. */
 export const PROP_GLB = {
   arch: `${url(KAYKIT)}/arch.gltf`,
   archGate: `${url(KAYKIT)}/arch_gate.gltf`,
@@ -220,7 +188,7 @@ export const PROP_GLB = {
   treeYellowLarge: `${url(KAYKIT)}/tree_pine_yellow_large.gltf`,
 };
 
-/** VoxelGraveyard â€” OBJ/MTL voxel props for the crater and grove POIs. */
+/** VoxelGraveyard    OBJ/MTL voxel props for the crater and grove POIs. */
 export const GRAVEYARD_OBJ = {
   tree: `${url(GRAVEYARD)}/SM-1-Tree.obj`,
   tomb1: `${url(GRAVEYARD)}/SM-3-Tomb1.obj`,
@@ -274,6 +242,91 @@ export const ITEM_LID_PART = {
   chest: 'GEO-chest_lid',
   ammoCrate: 'GEO-ammo_lid',
   grenade: 'GEO-plasma_grenade_cap',
+};
+
+/**
+ * Imported environment set-dressing, one entry per ingested piece.
+ *
+ * Every path here was produced by `tools/probe-env.mjs --copy`, which is also
+ * where the numbers in the comments come from -- they are measured from the
+ * files on disk, not read off a store page. Two things about this library are
+ * worth knowing before adding to it:
+ *
+ *   1. The authored scale is unusable as-is, in both directions. The temple is
+ *      a 1.8 km mountainside, the shenron coils 830 m into the air, and the
+ *      vending machine is a correctly-sized 1.8 m. So nothing is placed by
+ *      "drop it in at 1:1"; every placement picks a normalization (`height` or
+ *      `size`) from `ENV_PLACEMENTS` and the loader fits it.
+ *
+ *   2. Everything here arrives authored as PBR metal with black base colours,
+ *      which is the failure map.js documents at length: a metal surface with
+ *      nothing to reflect renders as a silhouette. All of it goes through the
+ *      kit loader (`makeLit`), which is why the audit's black-material counts
+ *      are survivable rather than fatal.
+ *
+ * Six pieces in `environment assets/` are deliberately NOT here. They are the
+ * ones over the 20 MB ingest budget, and each one is over it for a reason that
+ * needs the source re-exported rather than a path added:
+ *
+ *   japanese_sake_bottle.glb          84 MB for a 20 cm prop (65 MB of it is
+ *                                     two PNG textures)
+ *   japanese_temple.glb               70 MB, 835k tris, 1.8 km across
+ *   2bc13d0056ae47f49d2f7f9e00c4dc12  53 MB of 983k-tri geometry in a 1 m box
+ *    japan_hw.glb                     52 MB, 743k tris, no embedded textures
+ *                                     at all -- the weight is pure geometry
+ *   seated_bodhisattva_guanyin...glb  48 MB, 1.8 m tall, 40 MB of it two JPEGs
+ *   loft_japanese_11_free_interior    36 MB, 34 MB of it 30 textures
+ *
+ * Those six are the pieces the map actually wants most -- the temple for
+ * Celestial Temple, the bodhisattva for Statue Gardens, the highway for the
+ * starter island -- so the next step after this is a GLB re-exporter that
+ * shrinks embedded textures and drops the geometry to a sane triangle budget.
+ * `npm run probe:env` prints the current list and the reason. 
+ */
+export const ENVIRONMENT_GLB = {
+  // District-scale blocks. The town is the one piece that reads as a place
+  // rather than a prop: 1230 primitives, so it is placed once per map.
+  town: '/assets/env/japanese_town.glb',
+  station: '/assets/env/cyberpunk_station.glb',
+  overgrown: '/assets/env/an_overgrown_japanese_style_location.glb',
+  // Buildings that furnish the plaza.
+  restaurant: '/assets/env/japanese_restaurant.glb',
+  izakaya: '/assets/env/japanese_restaurant_inakaya.glb',
+  shrine: '/assets/env/japanese_shrine.glb',
+  // Street furniture, all at real-world scale already.
+  vending: '/assets/env/jpn_vending_machine.glb',
+  neonSign: '/assets/env/japanese_neon_street_sign.glb',
+  trafficLight: '/assets/env/japanese_traffic_light.glb',
+  // Landmarks that are not buildings: a pink tree, an anime tree, a 830 m
+  // dragon and a 255 m capital ship. The last two are only usable because a
+  // footprint fit scales them down by an order of magnitude.
+  pinkTree: '/assets/env/big_pink_tree.glb',
+  tree: '/assets/env/anime_nature_tree_01.glb',
+  dragon: '/assets/env/shenron_dragon_ball.glb',
+  pyramidShip: '/assets/env/destiny_pyramid_ship.glb',
+};
+
+/**
+ * Measured download size in MB, keyed as above.
+ *
+ * The loading bar and the asset audit both show this, and it is the number that
+ * decides whether a piece can be a district hero: the pyramids and the dragon
+ * cost 3.8 MB between them, while the whole plaza's street furniture is 17 MB.
+ */
+export const ENVIRONMENT_MB = {
+  town: 17.2,
+  station: 13.3,
+  overgrown: 11.1,
+  restaurant: 5.8,
+  izakaya: 9.7,
+  shrine: 7.7,
+  vending: 2.6,
+  neonSign: 3.8,
+  trafficLight: 9.3,
+  pinkTree: 2.6,
+  tree: 0.42,
+  dragon: 2.2,
+  pyramidShip: 1.7,
 };
 
 /**
@@ -353,29 +406,18 @@ export function getPsxRoster() {
  * never a surprise, and bots are kept off the heavy end of the list.
  */
 export const CHARACTER_MB = {
-  girl_sexy: 117,
-  goddess_of_victory_nikke: 108,
-  venus_goddess: 59,
-  alice_nikke: 52,
-  bunny_girl_dark: 46,
-  chicken_gun_fruzer: 42,
-  elaina_witch: 25,
-  lucy_wuthering: 21,
-  jemadia_open_data: 13,
-  the_lament: 12,
-  angle_fantasy: 11,
-  chaperone: 9,
-  citlali: 8,
-  black_panther: 7,
-  lucy_edgerunner: 5,
-  kasumi_sailor: 8.5,
-  kasumi_sailor_hd: 12,
-  scifi_soldier: 8.8,
-  mai_maid: 4.1,
-  miyazawa_idol: 4.8,
-  lucy_edgerunner_2: 5,
+  // Measured from the files on disk, not estimated. The 117 MB and 108 MB
+  // entries this table used to carry are gone with the models that had them:
+  // the heaviest thing left is Sofia at 14 MB, and the cheapest bot body is
+  // Soldier at 0.21 MB. That spread is why 15 bots can be Soldier.
+  sofia_anime: 14.4,
+  ual1_standard: 7.6,
+  miyazawa_fighter: 5.0,
+  fox: 0.86,
+  dragon: 0.74,
+  bald_eagle: 0.36,
+  soldier_rigged: 0.21,
 };
-
 /**
  * The cheapest character GLBs in the locker.
  *
@@ -385,11 +427,10 @@ export const CHARACTER_MB = {
  * make sure those files keep resolving.
  */
 export const BOT_MODEL_POOL = [
-  'lucy_edgerunner',
-  'black_panther',
-  'citlali',
-  'chaperone',
-  'angle_fantasy',
+  'soldier_rigged',
+  'bald_eagle',
+  'dragon',
+  'fox',
 ];
 
 /* ------------------------------------------------------------------ *
@@ -636,11 +677,11 @@ export function loadObj(u) {
       mtlLoader.load(`${u.slice(0, u.lastIndexOf('/') + 1)}${u.slice(u.lastIndexOf('/') + 1).replace(/\.obj$/, '.mtl')}`, (creator) => {
         creator.preload();
         // OBJLoader calls materials.create(name) per face, so it needs the
-        // MaterialCreator itself â€” not the creator's plain materials map.
+        // MaterialCreator itself    not the creator's plain materials map.
         objLoader.setMaterials(creator);
         done();
       }, undefined, () => {
-        // No usable .mtl â€” load geometry with the default material.
+        // No usable .mtl    load geometry with the default material.
         objLoader.setMaterials(null);
         done();
       });
@@ -788,7 +829,7 @@ export function normalizeScene(scene, targetHeight = 1.7, opts = {}) {
 }
 
 /**
- * Fit a prop to a target footprint instead of a height â€” used for kit pieces
+ * Fit a prop to a target footprint instead of a height    used for kit pieces
  * whose real-world size is unknown until they stream in.
  */
 export function fitToFootprint(scene, size = 1) {

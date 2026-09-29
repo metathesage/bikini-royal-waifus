@@ -12,7 +12,7 @@ globalThis.document = {
 };
 
 const { createMatch } = await import('../src/game/match.js');
-const { createRoster, assignBotModels } = await import('../src/game/bots.js');
+const { createRoster, assignBotModels, ANIMATED } = await import('../src/game/bots.js');
 const { setAssetManifest, loadPsxManifest } = await import('../src/data/assets.js');
 const { addPsxModels } = await import('../src/data/catalog.js');
 const { ISLAND_R, CITY_R, CITY_LIFT, PLAZA_Y, SEA_Y, heightAt, setTerrain, buildWorld } = await import('../src/world/map.js');
@@ -78,7 +78,7 @@ setAssetManifest(JSON.parse(readFileSync(
     // A 13 MB model with no textures is a shape dump, not a city. It will render
     // as flat untextured silhouettes no matter how well it is placed.
     if (!(json.materials || []).length) throw new Error('city model has no materials');
-    if (!(json.images || []).length) throw new Error('city model has no textures ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â it will render untextured');
+    if (!(json.images || []).length) throw new Error('city model has no textures  Æ —Å— it will render untextured');
     // Nine units of height for a 55-unit footprint reads as a car park.
     if (size[1] / Math.max(size[0], size[2]) < 0.12) {
       throw new Error(`city is too flat to read as vertical: ${size.join(' x ')}`);
@@ -92,7 +92,7 @@ setAssetManifest(JSON.parse(readFileSync(
 
 /* --- The island must face the sky ------------------------------- */
 /* An inverted terrain winding produces no error, no warning and no missing
-   geometry ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â it just lights the whole island from underneath, so the grass,
+   geometry  Æ —Å— it just lights the whole island from underneath, so the grass,
    the beach and the crater all render as one flat dark mass. The only way to
    notice is to look at the normals, so look at the normals. */
 {
@@ -109,7 +109,7 @@ setAssetManifest(JSON.parse(readFileSync(
     if (sum > 0) up++;
     else down++;
   });
-  if (up === 0) throw new Error('every coloured surface has downward normals ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the terrain is inside-out');
+  if (up === 0) throw new Error('every coloured surface has downward normals  Æ —Å— the terrain is inside-out');
   if (down > 0) throw new Error(`${down} coloured surface(s) are inside-out`);
 
   // And the island must actually have relief: a flat plane passes the normal
@@ -153,7 +153,7 @@ setAssetManifest(JSON.parse(readFileSync(
 /* --- Effects must never put NaN in the scene graph ------------------ */
 /* A particle with a NaN transform rasterises as a large black rectangle
    hanging in the sky. It reads as a broken map, not a broken effect, and it
-   leaves no trace in any log ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â so assert the scene stays finite after the FX
+   leaves no trace in any log — so assert the scene stays finite after the FX
    layer is deliberately fed garbage. */
 {
   const { createFx } = await import('../src/vfx/fx.js');
@@ -182,10 +182,10 @@ setAssetManifest(JSON.parse(readFileSync(
     o.updateMatrixWorld(true);
     for (const v of o.matrixWorld.elements) if (!Number.isFinite(v)) offenders++;
   });
-  if (offenders) throw new Error(`${offenders} fx transform(s) went non-finite ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â expect black rectangles in the sky`);
+  if (offenders) throw new Error(`${offenders} fx transform(s) went non-finite — expect black rectangles in the sky`);
 }
 
-/* --- Every bot should get her own rigged body ------------------------- */
+/* --- Every bot should get a clip-driven body ------------------------- */
 {
   const roster = await loadPsxManifest();
   const added = addPsxModels(roster);
@@ -195,18 +195,46 @@ setAssetManifest(JSON.parse(readFileSync(
   if (bots.length !== 43) throw new Error(`expected 43 bots, got ${bots.length}`);
   await assignBotModels(bots);
 
-  const rigged = bots.filter((b) => b.look.model && b.look.model.startsWith('character_'));
-  if (rigged.length < 25) throw new Error(`only ${rigged.length}/${bots.length} bots got a rigged body`);
-  // A roster where everybody looks identical defeats the point of the library.
-  const distinct = new Set(rigged.map((b) => b.look.model));
-  if (distinct.size < 20) throw new Error(`only ${distinct.size} distinct bodies across the roster`);
+  /**
+   * This used to assert 25+ PSX bodies with 20+ distinct silhouettes, and it
+   * was right for the decision it was written for. That decision has been
+   * reversed: the PSX models are static FBX files with no clips, so they are
+   * driven by the procedural rig, which slides rather than steps and does not
+   * handle a weapon convincingly. Variety was bought at the cost of the
+   * characters reading as people, and the player reported exactly that.
+   *
+   * So the assertion is the opposite one now: every bot draws from the small
+   * set of models that actually ship animation clips, and the whole set is
+   * used. Three repeated silhouettes is a known, accepted cost of having
+   * anyone move properly at all, and it is what `usePsx: true` is there to
+   * undo if more rigged models land.
+   */
+  const unassigned = bots.filter((b) => !b.look.model);
+  if (unassigned.length) throw new Error(`${unassigned.length} bot(s) got no model at all`);
+  const wrong = bots.filter((b) => !ANIMATED.includes(b.look.model));
+  if (wrong.length) {
+    throw new Error(`${wrong.length} bot(s) are not clip-driven, e.g. ${wrong[0].look.model}`);
+  }
+  const distinct = new Set(bots.map((b) => b.look.model));
+  if (distinct.size !== ANIMATED.length) {
+    throw new Error(`only ${distinct.size}/${ANIMATED.length} clip-driven models are in use`);
+  }
+  // The PSX library must stay reachable, or the fallback is gone for good
+  // rather than merely off.
+  const psxBots = createRoster('Yuna');
+  await assignBotModels(psxBots, { animatedEvery: 0, usePsx: true });
+  if (!psxBots.some((b) => String(b.look.model).startsWith('character_'))) {
+    throw new Error('the PSX fallback no longer assigns anything');
+  }
 
   // The model has to survive the trip into an avatar. `createWaifu` chooses
   // between an import and the procedural body, and a detail-level guard once
-  // meant every bot silently got the fallback ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the models were on disk, in the
+  // meant every bot silently got the fallback  Æ —Å— the models were on disk, in the
   // manifest, and never once rendered.
   const { createWaifu } = await import('../src/avatar/waifu.js');
-  for (const look of rigged.slice(0, 3).map((b) => b.look)) {
+  // Sampled from the whole roster now, not from the PSX slice, because the
+  // roster no longer has one.
+  for (const look of bots.slice(0, 3).map((b) => b.look)) {
     const av = createWaifu(look, 'lite');
     if (av.isGlb !== true) throw new Error(`bot look "${look.model}" built a procedural avatar at detail 'lite'`);
     if (!av.load.url) throw new Error(`import avatar for "${look.model}" has no asset url`);
@@ -219,7 +247,7 @@ if (Math.abs(heightAt(0, 0) - heightAt(20, 20)) > 0.8) throw new Error('the city
 if (heightAt(ISLAND_R + 10, 0) > -4) throw new Error('terrain does not fall away past the island edge');
 
 // buildStep is driven from requestAnimationFrame in the browser, so yield
-// between calls here too ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the world streams its kit assets asynchronously.
+// between calls here too  Æ —Å— the world streams its kit assets asynchronously.
 const yieldTick = () => new Promise((r) => setTimeout(r, 0));
 let p = 0;
 // three only warns about an undefined material `color`, which is easy to miss
@@ -264,10 +292,10 @@ let snap = null;
   const st = match.debugState();
   for (const [k, v] of Object.entries(st)) {
     if (typeof v === 'number' && !Number.isFinite(v)) {
-      throw new Error(`match.debugState().${k} is ${v} ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the player position went non-finite`);
+      throw new Error(`match.debugState().${k} is ${v} — the player position went non-finite`);
     }
   }
-  if (st.outside) throw new Error('the player starts outside the play zone ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the whole screen goes storm-purple');
+  if (st.outside) throw new Error('the player starts outside the play zone — the whole screen goes storm-purple');
   // The storm must still be readable, not a blackout.
   if (st.fog.far < 60) throw new Error(`out-of-bounds fog far=${st.fog.far} blinds the player`);
   console.log(`player at (${st.px}, ${st.py}, ${st.pz}), zone r=${st.zone.r}, storm fog far=${st.fog.far}`);
@@ -524,7 +552,7 @@ async function sightLineChecks() {
  * target was nailed to the same spot. The three properties below are the ones
  * that turn it into something worth re-entering, and each of them is the kind
  * of thing that silently disappears in a refactor without failing anything
- * else Ã¢â‚¬â€ the damage numbers stay correct while the game around them rots.
+ * else — the damage numbers stay correct while the game around them rots.
  */
 async function drillChecks(range, idle) {
   // 1. Scoring. A hit must be worth points, and a streak must be buildable.
@@ -604,7 +632,7 @@ function rendererCheck() {
   setTerrain(null);
 
   // The match has already been simulated to completion by the time we get
-  // here, so put it back into a live play phase first Ã¢â‚¬â€ otherwise update() is
+  // here, so put it back into a live play phase first — otherwise update() is
   // a no-op and this test passes without testing anything. reset() puts us
   // back in the lobby, so the lobby timer has to elapse before the bus exists.
   match.reset();
@@ -681,7 +709,7 @@ function rendererCheck() {
 
 /* --- A candidate's decree, and her weakness, in a live match ---------- */
 /* ROYAL DECREE: UNDERTOW is suppressed inside a storm wall, and a rule about
-   storms can only be tested where a storm exists Ã¢â‚¬â€ the range has none on
+   storms can only be tested where a storm exists — the range has none on
    purpose. So this drives the match into a closing ring and checks both halves:
    refused out in the wall, castable in the calm centre, with the drag landing on
    the victim it caught. Candidate A's sheet is what decides all of it. */
@@ -714,7 +742,7 @@ function rendererCheck() {
   if (!closing) throw new Error('the storm never started closing, so the weakness cannot be checked');
 
   // Out in the wall: the sigil cannot hold, and a refused cast must not burn
-  // the cooldown Ã¢â‚¬â€ otherwise her weakness would double as a self-punish.
+  // the cooldown — otherwise her weakness would double as a self-punish.
   const zone = match.debugState().zone;
   match.player.abilityCd = 0;
   match.player.pos.x = zone.x + zone.r + 8;

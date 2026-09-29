@@ -5,6 +5,7 @@ import {
   MAP_DECOR_GLB, MODULAR_FBX, PROP_GLB, GRAVEYARD_OBJ, CITY_GLB, ITEM_GLB, ITEM_LID_PART,
   loadGltf, loadFbx, loadObj, normalizeScene, fitToFootprint, tintScene, instanceOf,
 } from '../data/assets.js';
+import { dressEnvironment, ENV_PLACEMENTS } from './envDress.js';
 
 /* ------------------------------------------------------------------ *
  * Kit placement
@@ -39,7 +40,7 @@ function isCard(geometry) {
  *
  * Each asset is fetched once, normalized once, then cloned per placement.
  * Clones share geometry, materials and textures, so dressing a POI with 30
- * pieces costs 30 draw calls rather than 30 copies of the mesh data ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â which is
+ * pieces costs 30 draw calls rather than 30 copies of the mesh data  Æ  † ™—„—Æ —Å—Æ  † ™—Æ —Å—Æ —Å—Æ  † ™—Æ —…—Æ —Å— which is
  * what makes it safe to build the whole island out of kit pieces.
  */
 /**
@@ -189,7 +190,17 @@ function makeLit(scene) {
   return scene;
 }
 
-function createKit(group, boxes) {
+/**
+ * Placement factory bound to one world.
+ *
+ * Exported because the second map needs it too. Sakura Isle is a blockout, but
+ * its imported dressing has exactly the same requirements as this island's --
+ * fetch once, normalize once, rescue the materials, and count the whole thing
+ * towards one loading bar -- and it already imports three other helpers from
+ * this file. A second copy of this loader would drift from this one within a
+ * release, and the drift would show up as one map's props rendering black.
+ */
+export function createKit(group, boxes) {
   const jobs = [];
   let done = 0;
 
@@ -258,6 +269,13 @@ function createKit(group, boxes) {
         }
       });
       parent.add(inst);
+      // Optional collection for callers that need a handle on the instance later
+      // -- the drop ship's canopy, which match.js hides while anyone is aboard.
+      // `opts.into` is deliberately not part of the memoisation key in baseFor:
+      // it selects *where the result is recorded*, not which asset is loaded, so
+      // two identical placements into different arrays must still share the
+      // cached prototype and each get their own instance.
+      if (opts.into) opts.into.push(inst);
       return inst;
     });
     jobs.push(job.then(() => { done += 1; }));
@@ -368,7 +386,7 @@ function buildCity(kit, group, boxes, anchors, rng) {
         (b.min.x + b.max.x) / 2, (b.min.y + b.max.y) / 2, (b.min.z + b.max.z) / 2,
         Math.max(0.4, s.x), Math.max(0.4, s.y), Math.max(0.4, s.z), 'city',
       ));
-      // Wide and thin means a floor, a balcony or a roof ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â loot goes on top.
+      // Wide and thin means a floor, a balcony or a roof  Æ  † ™—Æ —…—Æ —Å— loot goes on top.
       if (foot >= 3.5 && s.y <= 2.4) {
         slabs.push({ x: (b.min.x + b.max.x) / 2, y: b.max.y, z: (b.min.z + b.max.z) / 2, foot });
       }
@@ -479,7 +497,7 @@ const CITY_FLAT_COLORS = {
 function islandHeightAt(x, z) {
   const r = Math.hypot(x, z);
   const island = smoothstep(ISLAND_R, ISLAND_R - 16, r);
-  // Gentle rolls only ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â verticality comes from the buildings, not the terrain.
+  // Gentle rolls only  Æ  † ™—Æ —…—Æ —Å— verticality comes from the buildings, not the terrain.
   let h = Math.sin(x * 0.07) * Math.cos(z * 0.06) * 0.9;
   h += Math.exp(-((x + 34) * (x + 34) + (z - 26) * (z - 26)) / 260) * 2.6;  // crater rim
   h -= Math.exp(-((x + 34) * (x + 34) + (z - 26) * (z - 26)) / 90) * 3.4;   // crater bowl
@@ -871,7 +889,7 @@ export function buildWorld(scene, seed = 7, renderer = null) {
     }
   }
 
-  // Downtown ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the multi-level city block. Everything about it (collision,
+  // Downtown  Æ —Å— the multi-level city block. Everything about it (collision,
   // rooftops, loot) is derived from the asset, so there is nothing to author.
   let city = null;
   const cityReady = buildCity(kit, group, boxes, anchors, rng).then((info) => {
@@ -909,7 +927,7 @@ export function buildWorld(scene, seed = 7, renderer = null) {
       anchors.chests.push({ x: p.x + Math.cos(a) * 7, z: p.z + Math.sin(a) * 7, poi: p.id });
     }
   }
-  // Night Market ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â was the "Alien Bazaar". Six stalls assembled from the
+  // Night Market  Æ  † ™—„—Æ —Å—Æ  † ™—Æ —Å—Æ —Å—Æ  † ™—Æ —…—Æ —Å— was the "Alien Bazaar". Six stalls assembled from the
   // modular kit: a shipping-pallet counter, a back wall, corner posts, a sign
   // and a hanging lantern. No more alien cones.
   {
@@ -977,7 +995,7 @@ export function buildWorld(scene, seed = 7, renderer = null) {
     }
   }
   // Skyline: a stacked tower of modular decks, each reachable from the one
-  // below. This is the map's vertical spine ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the only place you can be shot
+  // below. This is the map's vertical spine — the only place you can be shot
   // from above, and the only place worth climbing for.
   {
     const p = POIS[4];
@@ -1032,6 +1050,20 @@ export function buildWorld(scene, seed = 7, renderer = null) {
   // Kit dressing for the remaining POIs: real trees, fences, arches, tombs and
   // lanterns layered over the procedural landmarks.
   dressPois(kit, rng);
+
+  /*
+   * Imported environment dressing -- the Japanese packs -- on top of the kit
+   * pass. Placement lives in envDress.js so it is one table for both maps and
+   * one table for `tools/probe-dress.mjs` to check.
+   *
+   * Gated on the renderer, which is the browser-only signal this file already
+   * uses for image-based lighting. Two reasons, both practical: node has no
+   * WebGL, and these pieces are ~87 MB of GLB, so loading them in the headless
+   * test suite would buy nothing and cost a minute. The placement table itself
+   * is still fully validated headlessly, because a placement is geometry and a
+   * geometry check needs no textures.
+   */
+  if (renderer) dressEnvironment(kit, ENV_PLACEMENTS.island, null);
 
   // Mid-map cover so rotations aren't empty.
   for (let i = 0; i < 14; i++) {
@@ -1139,6 +1171,19 @@ export function buildWorld(scene, seed = 7, renderer = null) {
 
   const lobby = buildLobby(kit);
   scene.add(lobby);
+  // The lobby deck is a real, standable surface and has to be in the collision
+  // list, not just drawn. It was built with `g.userData.box = makeBox(...)` and
+  // that box went nowhere -- `userData` is a label, not a registry -- so the
+  // player spawned at y=48.7 on a deck the collision system could not see and
+  // free-fell the full 48 m to the sea floor the moment physics started. That
+  // is the "falling through the map" report, and it predates every other
+  // change here.
+  //
+  // Safe to register at 48 m only because floorAt now ignores surfaces more
+  // than a step-up above the feet. Before that change, adding this box would
+  // have teleported everyone on the ground up onto the deck the instant the
+  // match went live. The two fixes only work as a pair.
+  if (lobby.userData.box) boxes.push(lobby.userData.box);
 
   return {
     group, boxes, heightAt, anchors, pois: POIS, ufo, lobby, sky, sun, kit, cityReady,
@@ -1155,7 +1200,7 @@ export function buildWorld(scene, seed = 7, renderer = null) {
         meshes: (() => { let n = 0; city.traverse((o) => { if (o.isMesh) n++; }); return n; })(),
       };
     },
-    /** Kit chest factory ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â match.js builds one per loot anchor. */
+    /** Kit chest factory  Æ  † ™—„—Æ —Å—Æ  † ™—Æ —Å—Æ —Å—Æ  † ™—Æ —…—Æ —Å— match.js builds one per loot anchor. */
     makeChest: () => buildChest(),
     /** 0..1 while environment assets stream in; drives the loading bar. */
     progress: () => kit.progress(),
@@ -1299,7 +1344,7 @@ function buildUfo(kit) {
   const group = new THREE.Group();
   const DECK = 10;
 
-  // Deck plating ÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã‚Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â a cross of floor tiles so the hull has a real silhouette.
+  // Deck plating  Æ  † ™—„—Æ —Å—Æ  † ™—Æ —Å—Æ —Å—Æ  † ™—Æ —…—Æ —Å— a cross of floor tiles so the hull has a real silhouette.
   kit.putIn(group, MODULAR_FBX.floor, { x: 0, y: 0, z: 0, size: DECK, ground: false, shadow: false });
   kit.putIn(group, MODULAR_FBX.floorAlt, { x: 0, y: 0.02, z: 0, rotY: Math.PI / 2, size: DECK, ground: false, shadow: false });
   kit.putIn(group, MODULAR_FBX.floorCorner, { x: 0, y: 0.04, z: 0, rotY: Math.PI / 4, size: DECK * 0.8, ground: false, shadow: false });
@@ -1319,8 +1364,11 @@ function buildUfo(kit) {
     const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
     kit.putIn(group, MODULAR_FBX.pillar, { x: Math.cos(a) * R * 0.86, y: 0.2, z: Math.sin(a) * R * 0.86, height: 4.4, ground: false });
   }
-  kit.putIn(group, MODULAR_FBX.cubeSlab, { x: 0, y: 4.6, z: 0, size: DECK * 0.9, ground: false });
-  kit.putIn(group, MODULAR_FBX.cubeLow, { x: 0, y: 4.1, z: 0, size: DECK * 0.55, ground: false });
+  // Kept by reference so match.js can lift the roof while anyone is aboard.
+  // Under it the deck is in full shadow and the camera is inside a closed box.
+  const roofParts = [];
+  kit.putIn(group, MODULAR_FBX.cubeSlab, { x: 0, y: 4.6, z: 0, size: DECK * 0.9, ground: false, into: roofParts });
+  kit.putIn(group, MODULAR_FBX.cubeLow, { x: 0, y: 4.1, z: 0, size: DECK * 0.55, ground: false, into: roofParts });
 
   // Cargo and running lights.
   for (let i = 0; i < 4; i++) {
@@ -1351,7 +1399,24 @@ function buildUfo(kit) {
     seats.push({ x: Math.cos(a) * 3.1, y: 0.2, z: Math.sin(a) * 3.1, yaw: -a + Math.PI });
   }
   group.position.set(0, 70, 0);
-  return { group, beam, seats };
+  return {
+    group, beam, seats,
+    /**
+     * Radius of the solid deck, in metres.
+     *
+     * match.js reads this to drop the player clear of the hull. Dropping
+     * straight down from the deck centre put the camera inside the plating,
+     * which is what opened the drop on a full-screen black wedge.
+     */
+    hullR: DECK * 0.5 + 1.5,
+    /**
+     * The canopy slabs that roof the deck.
+     *
+     * Hidden while anyone is aboard. Under them the deck is in full shadow and
+     * the camera is inside a closed box, so the ride was both black and blind.
+     */
+    roof: roofParts,
+  };
 }
 
 /**

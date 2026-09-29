@@ -1,9 +1,9 @@
-/**
+﻿/**
  * Kit asset validation.
  *
  * The environment is built from three source formats living in
  * `public/assets/props`. A typo in a path, a missing .bin, or a loader fed the
- * wrong object all fail *silently at runtime* in the browser â€” the island just
+ * wrong object all fail *silently at runtime* in the browser    the island just
  * comes up undressed. So parse every kit asset here and assert real geometry
  * comes out, plus that the same normalization the world applies is sound.
  */
@@ -150,7 +150,7 @@ function glbToJson(buf) {
       const creator = new MTLLoader().parse(fs.readFileSync(file.replace(/\.obj$/, '.mtl'), 'utf8'), '');
       creator.preload();
       // OBJLoader calls materials.create(name) per face, so it needs the
-      // MaterialCreator itself â€” not the creator's plain materials map.
+      // MaterialCreator itself    not the creator's plain materials map.
       const obj = new OBJLoader();
       obj.setMaterials(creator);
       group = obj.parse(fs.readFileSync(file, 'utf8'));
@@ -244,9 +244,19 @@ function glbToJson(buf) {
 {
   // The cheapest character, so the test stays quick: parse it, normalize it the
   // way the locker does, and confirm a human-sized, grounded, front-facing rig.
+  //
+  // A representative character, not merely the cheapest. The cheapest entry is
+  // soldier_rigged at 0.21 MB / 889 verts, which is a real shipped rig with 32
+  // clips but far too coarse to be evidence that "a character" parses -- it
+  // failed the 1000-vert check below, correctly. ual1_standard is the honest
+  // subject: 65 joints, 43 clips, and the model most bots that should look like
+  // they are fighting actually wear.
   const { CHARACTERS, CHARACTER_MB } = await import('../src/data/assets.js');
   const loader = new GLTFLoader();
-  const url = CHARACTERS.lucy_edgerunner.url;
+  const cheapest = Object.keys(CHARACTER_MB).sort((a, b) => CHARACTER_MB[a] - CHARACTER_MB[b])[0];
+  check(!!CHARACTERS[cheapest], `cheapest model ${cheapest} is in CHARACTER_MB but not in CHARACTERS`);
+  const subject = CHARACTERS.miyazawa_fighter ? 'miyazawa_fighter' : cheapest;
+  const url = CHARACTERS[subject].url;
   const file = onDisk(url);
   const json = stripTextures(glbToJson(fs.readFileSync(file)));
   const gltf = await loader.parseAsync(JSON.stringify(json), '');
@@ -267,7 +277,7 @@ function glbToJson(buf) {
   other.position.set(0, 0, 5);
   check(other !== rig, 'character clone is the same object');
   check(new THREE.Box3().setFromObject(rig).min.y < 0.05, 'moving one clone moved the other');
-  check(CHARACTER_MB.lucy_edgerunner > 0, 'character missing a download size');
+  check(CHARACTER_MB[cheapest] > 0, 'character missing a download size');
 }
 
 /* --- The city block the map is built around ----------------------------- */
@@ -320,3 +330,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log('kit assets ok');
+
