@@ -16,6 +16,9 @@ console.log('GL', await p.evaluate(() => { const r = window.__brRenderer().getCo
 await wait(25000);
 await p.evaluate(() => window.__brSkipBus());
 await wait(1000);
+await wait(9000);
+await p.evaluate(() => { window.__brFreeCam(null); const m = window.__brMatch(); m.player.pos.set(20, 3, 20); m.player.gliding = false; m.player.channel = { id: 'veil', t: 60, max: 60 }; });
+await wait(6000); await p.screenshot({ path: `${prefix}-drink.png` });
 await p.evaluate(() => { document.getElementById('ui').style.display = 'none'; });
 const shots = { overview: [[0, 230, 300], [0, 0, 0]], downtown: [[0, 22, 62], [0, 8, 0]], village: [[-118, 20, -30], [-118, 4, -78]], temple: [[12, 34, -100], [12, 14, -150]], harbor: [[128, 20, 0], [128, 4, -52]], gardens: [[-108, 20, 140], [-108, 3, 88]], station: [[118, 24, 150], [118, 6, 92]] };
 for (const [name, [eye, tgt]] of Object.entries(shots)) {

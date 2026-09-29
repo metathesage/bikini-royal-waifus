@@ -140,6 +140,7 @@ export function createGlbWaifu(look, detail = 'full') {
           idleArmed: ['pistol_idle_loop', 'pistol_idle'],
           aim: ['pistol_aim_neutral'],
           glide: ['glide', 'flying_forward'],
+          consume: ['consume_item', 'consume', 'greeting'],
           emote: ['dance_simple', 'dance_charleston', 'cheering_two_hands', 'greeting'],
           victory: ['victory', 'victory_fist_pump', 'cheering_two_hands'],
           reload: ['pistol_reload'],
@@ -316,6 +317,8 @@ export function createGlbWaifu(look, detail = 'full') {
       if (shootT > 0) shootT -= dt;
       if (ctx.dead && clips.die) {
         playClip('die', 0.1, true);
+      } else if (ctx.using && clips.consume) {
+        playClip('consume', 0.15);
       } else if (posing && (clips.emote || clips.victory)) {
         // Emotes and the victory pose play a real clip; anything else falls back to idle.
         const win = /vict|spark|win/i.test(pose) && clips.victory;

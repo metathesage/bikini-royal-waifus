@@ -627,7 +627,7 @@ let ufoDepart = -1;
     if (kind === 'crystal') return CRYSTAL_MODEL[id] || null;
     if (kind === 'item') {
       if (ITEMS[id]?.kind === 'grenade') return ITEM_GLB.grenade;
-      if (ITEMS[id]?.kind === 'shield') return ITEM_GLB.shieldCell;
+      if (ITEMS[id]?.kind === 'shield') return '/assets/env-lite/sake_bottle.glb';
       return ITEM_GLB.medkit;
     }
     return null;
@@ -1638,6 +1638,28 @@ function beginBus() {
     yawPivot.updateMatrixWorld(true);
     eye.localToWorld(p);
     return p;
+  }
+
+  /** While drinking a sake shield the bottle is in the hero's hand; otherwise the equipped gun is. */
+  let heroProp = null;
+  function syncHeroProp() {
+    const ch = player.channel && player.channel.id && player.channel.id !== 'revive' ? ITEMS[player.channel.id] : null;
+    const want = ch && ch.kind === 'shield' ? 'sake' : null;
+    if (want === heroProp) return;
+    heroProp = want;
+    if (!hero) return;
+    if (want === 'sake') {
+      const g = new THREE.Group();
+      loadGltf('/assets/env-lite/sake_bottle.glb').then((gltf) => {
+        const inst = instanceOf(gltf.scene);
+        fitToFootprint(inst, 0.32);
+        inst.rotation.x = -Math.PI / 2;
+        g.add(inst);
+      }).catch(() => {});
+      hero.attachWeapon(g);
+    } else {
+      syncWeapon();
+    }
   }
 
   function currentGun() {
@@ -2951,6 +2973,7 @@ function beginBus() {
       const show = hero.group.visible;
       hero.group.visible = show;
       hero.setPose(pose);
+      syncHeroProp();
       hero.update(dt, {
         speed: show ? moving : 0,
         sprint: false,
@@ -2964,6 +2987,7 @@ function beginBus() {
         grounded: player.grounded,
         aiming: aimHeld,
         armed: tpsActive() && clock.phase === 'play',
+        using: player.channel && player.channel.id && player.channel.id !== 'revive' ? player.channel.id : null,
         gliding: !!player.gliding,
         reloading: player.reload > 0,
         mv: tpsActive() ? player.localMove : null,
@@ -3093,7 +3117,7 @@ function beginBus() {
         _camDir.multiplyScalar(1 / len);
         for (const box of world.boxes) {
           const t = rayAABB(_camEye.x, _camEye.y, _camEye.z, _camDir.x, _camDir.y, _camDir.z, box, len);
-          if (t != null && t >= 0 && t < len) k = Math.min(k, Math.max(0.15, (t - 0.25) / len));
+          if (t != null && t >= 0 && t < len) k = Math.min(k, Math.max(0.4, (t - 0.25) / len));
         }
       }
       const tx = want[0] * k, ty = want[1] * k, tz = want[2] * k;

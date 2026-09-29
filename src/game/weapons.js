@@ -111,7 +111,7 @@ export const ITEMS = {
   bandage: { id: 'bandage', name: 'Kiss Bandage', kind: 'heal', rarity: 'common', hp: 30, time: 1.6, stack: 6, blurb: 'A smooch-shaped plaster.' },
   elixir: { id: 'elixir', name: 'Heart Elixir', kind: 'heal', rarity: 'rare', hp: 55, time: 3.1, stack: 3, blurb: 'Bubbly pink. Tastes like victory.' },
   potion: { id: 'potion', name: 'Love Potion', kind: 'heal', rarity: 'epic', hp: 100, time: 4.2, stack: 2, blurb: 'Full heart. Do not chug while shot.' },
-  veil: { id: 'veil', name: 'Sparkle Veil', kind: 'shield', rarity: 'common', shield: 30, time: 1.7, stack: 5, blurb: 'A glitter mist that hardens.' },
+  veil: { id: 'veil', name: 'Sake Shield', kind: 'shield', rarity: 'common', shield: 30, time: 1.9, stack: 5, blurb: 'Drink up. Liquid courage hardens into armor.' },
   barrier: { id: 'barrier', name: 'Crystal Bikini Barrier', kind: 'shield', rarity: 'rare', shield: 55, time: 3.2, stack: 3, blurb: 'Faceted light, strapped on fast.' },
   aegis: { id: 'aegis', name: 'Goddess Aegis', kind: 'shield', rarity: 'legendary', shield: 100, time: 4.4, stack: 1, blurb: 'The full divine shell.' },
   star: { id: 'star', name: 'Star Grenade', kind: 'grenade', rarity: 'epic', time: 0.15, stack: 4, blurb: 'Throw a star. It disagrees with cover.' },
