@@ -560,8 +560,19 @@ async function drillChecks(range, idle) {
   if (!(first.score > 0)) {
     throw new Error(`a confirmed hit scored nothing (score=${first.score})`);
   }
-  if (!(first.streak >= 1)) {
-    throw new Error(`a confirmed hit did not open a streak (streak=${first.streak})`);
+  /**
+   * Assert that a hit *opened* a streak, which is not the same as a streak
+   * being open right now.
+   *
+   * This read `first.streak`, but the drill had already fired eight further
+   * frames before the snapshot. A miss deliberately breaks the streak, and
+   * every shot carries random spread, so whether the number was still standing
+   * when the assertion ran came down to whether one of those later pellets
+   * happened to miss. `bestStreak` records that a streak was opened and is not
+   * erased by the miss that closes it, which is exactly the property here.
+   */
+  if (!(first.bestStreak >= 1)) {
+    throw new Error(`a confirmed hit did not open a streak (bestStreak=${first.bestStreak})`);
   }
   if (!(first.last.score > 0)) {
     throw new Error('the panel does not report the points the last hit was worth');
@@ -812,6 +823,29 @@ function rendererCheck() {
     victim.pos.z = zone.z + 4;
     victim.knocked = true;
     victim.knockHp = 100;
+    /**
+     * Clear the ring before every measured cast.
+     *
+     * Amaranth's gale is suppressed by its own weakness -- "three enemies
+     * inside eight metres and the petals have nowhere to go" -- so any two
+     * other bots that happened to be loitering near the caster would stop the
+     * breath from blowing. The cast then armed nothing, and because the
+     * undertow check above had already left an *inward* pull on this same
+     * victim, the assertion read that stale vector and failed with an exact
+     * dot of -1. The test was measuring where the other 41 bots happened to
+     * be standing, which is why it failed about a third of the time.
+     *
+     * Pushing them out of the weakness ring makes the measurement about the
+     * decree instead of about the crowd.
+     */
+    for (const b of match.bots()) {
+      if (b === victim || !b.alive) continue;
+      if (Math.hypot(b.pos.x - zone.x, b.pos.z - zone.z) < 30) {
+        b.pos.x = zone.x + 60;
+        b.pos.z = zone.z + 60;
+      }
+    }
+    victim.pull = null;
     match.player.abilityCd = 0;
     match.player.hp = 100;
     match.player.shield = 60;
@@ -829,8 +863,24 @@ function rendererCheck() {
   const awayX = victim.pos.x - match.player.pos.x;
   const awayZ = victim.pos.z - match.player.pos.z;
   const awayLen = Math.hypot(awayX, awayZ) || 1;
-  if (Math.abs(victim.pull.x - awayX / awayLen) > 1e-6 || Math.abs(victim.pull.z - awayZ / awayLen) > 1e-6) {
-    throw new Error('the gale drags inward instead of blowing outward');
+  /**
+   * Assert the *sign* of the push, not its exact components.
+   *
+   * This used to require `pull` to equal the player->victim unit vector to
+   * within 1e-6. That is over-specified: the ability normalises the direction
+   * at cast time, but bots keep moving inside the same update, so reading
+   * `victim.pos` afterwards compares the push against a direction the cast
+   * never saw. Whether it passed came down to whether the victim happened to
+   * take a step that frame -- the test failed intermittently for reasons that
+   * had nothing to do with the gale.
+   *
+   * The property actually under test is that a gale blows outward where an
+   * undertow drags inward. A dot product against the away-vector answers that
+   * directly, and an inverted sign still fails loudly at dot ~= -1.
+   */
+  const awayDot = victim.pull.x * (awayX / awayLen) + victim.pull.z * (awayZ / awayLen);
+  if (awayDot < 0.9) {
+    throw new Error(`the gale drags inward instead of blowing outward (dot=${awayDot.toFixed(3)})`);
   }
   if (victim.pull.speed !== gale.pull) throw new Error(`the gale runs at ${victim.pull.speed} m/s, not ${gale.pull}`);
 
@@ -852,3 +902,14 @@ function rendererCheck() {
   console.log(`decrees: gale blew the victim out to ${gale.pull} m/s; hunger cut ${dealt.toFixed(0)} and took ${leech.toFixed(0)} shield for it`);
 }
 
+/* --- Picking up a gun must work from the third-person camera ------------ */
+{
+  const gun = match.pickups().find((q) => !q.taken && q.kind === 'gun');
+  if (!gun) throw new Error('no loose gun on the map to test pickup with');
+  match.player.guns = [null, null];
+  match.player.pos.set(gun.x + 1.2, gun.y, gun.z);
+  const press = { ...input, moveX: 0, moveY: 0, lookX: 0, fire: false, interactPressed: true };
+  for (let i = 0; i < 3; i++) match.update(1 / 30, press);
+  if (!gun.taken) throw new Error('standing 1.2 m from a gun and pressing interact did not pick it up');
+  console.log('pickup: gun taken from 1.2 m in third person');
+}

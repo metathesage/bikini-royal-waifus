@@ -1013,7 +1013,7 @@ let ufoDepart = -1;
     _fwd.copy(basis.forward);
     _right.copy(basis.right);
     const origin = new THREE.Vector3();
-    camera.getWorldPosition(origin);
+    eye.getWorldPosition(origin);
     let best = null;
     const bestDir = new THREE.Vector3();
     for (const b of bots) {
@@ -1906,7 +1906,7 @@ function beginBus() {
   function throwGrenade() {
     camera.getWorldDirection(_dir);
     const o = new THREE.Vector3();
-    camera.getWorldPosition(o);
+    eye.getWorldPosition(o);
     grenades.push({
       x: o.x, y: o.y, z: o.z,
       vx: _dir.x * 16, vy: _dir.y * 10 + 4, vz: _dir.z * 16,
@@ -1942,15 +1942,16 @@ function beginBus() {
     let bestD = 3;
     camera.getWorldDirection(_dir);
     const origin = new THREE.Vector3();
-    camera.getWorldPosition(origin);
+    eye.getWorldPosition(origin);
     function consider(pos, type, obj, maxD) {
       const dx = pos.x - origin.x;
       const dy = (pos.y + 0.4) - origin.y;
       const dz = pos.z - origin.z;
       const d = Math.hypot(dx, dy, dz);
-      if (d > maxD) return;
+      if (d > maxD + 0.5) return;
       const dot = (dx * _dir.x + dy * _dir.y + dz * _dir.z) / d;
-      if (dot < 0.45) return;
+      // Wide cone at arm's length: on a pad you should not have to aim at the floor.
+      if (dot < 0.2 && d > 1.3) return;
       if (d < bestD) { bestD = d; best = { type, ...obj, d }; }
     }
     for (const c of chests) if (!c.open) consider(c, 'chest', { chest: c }, 2.8);
@@ -2930,6 +2931,9 @@ function beginBus() {
         crouch: player.crouch,
         grounded: player.grounded,
         aiming: aimHeld,
+        armed: tpsActive() && clock.phase === 'play',
+        gliding: !!player.gliding,
+        reloading: player.reload > 0,
         mv: tpsActive() ? player.localMove : null,
       });
     }
@@ -2965,6 +2969,8 @@ function beginBus() {
         // player can read whether a bot has spotted them.
         grounded: b.pos.y <= heightAt(b.pos.x, b.pos.z) + 0.3,
         aiming: !!(b.intent && b.intent.aim) && !b.knocked && b.alive,
+        armed: true,
+        reloading: b.reload > 0,
         lookPitch: b.intent && b.intent.aim
           ? Math.atan2(
             b.intent.aim.y - (b.pos.y + 1.45),
@@ -3007,7 +3013,7 @@ function beginBus() {
 
   /** Over-the-shoulder third person while the player is alive and playing. */
   function tpsActive() {
-    return clock.phase === 'play' && player.alive && !inspect && emoteT <= 0 && !world.isGraybox;
+    return (clock.phase === 'play' || clock.phase === 'lobby' || clock.phase === 'bus') && player.alive && !inspect && emoteT <= 0 && !world.isGraybox;
   }
   let fovKick = 0;
   const _camWant = new THREE.Vector3();
@@ -3043,7 +3049,7 @@ function beginBus() {
     rig.position.copy(player.pos);
     // Camera boom: behind and to the right of the shoulder, pulled in by walls.
     {
-      const want = tps ? (ads ? [0.4, 0.3, 1.9] : [0.6, 0.45, 3.3]) : [0, 0, 0];
+      const want = tps ? (clock.phase !== 'play' ? [0.5, 1.3, 7] : ads ? [0.4, 0.3, 1.9] : [0.6, 0.45, 3.3]) : [0, 0, 0];
       let k = 1;
       if (tps) {
         rig.updateMatrixWorld(true);
@@ -3085,14 +3091,19 @@ function beginBus() {
       );
       cine.lookAt(player.pos.x, focusY, player.pos.z);
     }
+    if (world.sky) {
+      const ac = activeCamera();
+      ac.updateMatrixWorld(true);
+      ac.getWorldPosition(world.sky.position);
+    }
     // The storm tint is a match-mode affordance: it tells you the sky is
     // closing in. The range has no storm, and its neutral fog is what makes a
     // 100m target readable, so it is left exactly as the map built it.
     if (scene.fog && !world.isGraybox) {
       const outside = Math.hypot(player.pos.x - zone.x, player.pos.z - zone.z) > zone.r && clock.phase === 'play';
-      scene.fog.color.set(outside ? 0x8a4fe0 : 0xf7c6e4);
-      scene.fog.near = outside ? 12 : 40;
-      scene.fog.far = outside ? 110 : 155;
+      scene.fog.color.set(outside ? 0x8a4fe0 : 0xb98a9c);
+      scene.fog.near = outside ? 12 : 70;
+      scene.fog.far = outside ? 110 : 320;
     }
   }
 
@@ -3473,6 +3484,7 @@ function beginBus() {
       islandR: ISLAND_R,
       groundUnderPlayer: +heightAt(player.pos.x, player.pos.z).toFixed(2),
     }),
+    pickups: () => pickups,
     ready: () => built, phase: () => clock.phase,
     // Refresh the bag fields on read, so the loadout screen is correct even
     // while the simulation is paused and update() is not running.

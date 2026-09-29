@@ -136,7 +136,11 @@ export function createGlbWaifu(look, detail = 'full') {
         // Kenney-style soldier). Anything still unresolved falls through to the regexes.
         const byName = new Map(source.animations.map((c) => [(c.name || '').toLowerCase(), c]));
         const PICK = {
-          idle: ['pistol_idle_loop', 'pistol_idle', 'idle_loop', 'idle_a', 'idle', 'standby'],
+          idle: ['idle_loop', 'idle_a', 'idle', 'standby', 'pistol_idle_loop'],
+          idleArmed: ['pistol_idle_loop', 'pistol_idle'],
+          aim: ['pistol_aim_neutral'],
+          glide: ['glide', 'flying_forward'],
+          reload: ['pistol_reload'],
           walk: ['walk_loop', 'walk', 'walk_female'],
           run: ['jog_fwd_loop', 'jog', 'run_anime', 'run_female', 'sprint_loop', 'sprint'],
           sprint: ['sprint_loop', 'sprint', 'run_anime'],
@@ -310,6 +314,8 @@ export function createGlbWaifu(look, detail = 'full') {
       if (shootT > 0) shootT -= dt;
       if (ctx.dead && clips.die) {
         playClip('die', 0.1, true);
+      } else if (ctx.gliding && clips.glide) {
+        playClip('glide', 0.2);
       } else if (!posing) {
         const grounded = ctx.grounded !== false;
         if (!grounded && clips.jump) playClip('jump', 0.15);
@@ -319,7 +325,10 @@ export function createGlbWaifu(look, detail = 'full') {
         else if (speed > 6.5 && (clips.sprint || clips.run)) playClip(clips.sprint ? 'sprint' : 'run', 0.15);
         else if (speed > 3.2 && clips.run) playClip('run', 0.15);
         else if (speed > 0.35 && (clips.walk || clips.run)) playClip(clips.walk ? 'walk' : 'run', 0.15);
+        else if (ctx.reloading && clips.reload) playClip('reload', 0.1, true);
         else if (shootT > 0 && clips.shoot) playClip('shoot', 0.05);
+        else if (ctx.aiming && clips.aim) playClip('aim', 0.12);
+        else if (ctx.armed && clips.idleArmed) playClip('idleArmed', 0.2);
         else playClip('idle');
       }
       mixer.update(dt);

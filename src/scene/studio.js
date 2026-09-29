@@ -5,7 +5,7 @@ import { createWeaponMesh } from '../avatar/viewmodel.js';
 import { loadGltf, instanceOf, normalizeScene } from '../data/assets.js';
 
 const PRESETS = {
-  lobby: { key: '#fff0e0', fill: '#ffb3d9', rim: '#ff7ab0', bg: '#ffb08a', exp: 1.1, fog: '#ffb89a' },
+  lobby: { key: '#ffe3c2', fill: '#6a4a7a', rim: '#ff8fb0', bg: '#0b0b10', exp: 1.3, fog: '#0b0b10' },
   sunset: { key: '#ffb067', fill: '#ff6ad5', rim: '#7a4bff', bg: '#2a1030', exp: 1.2, fog: '#4a2040' },
   neon: { key: '#39ffd2', fill: '#ff2bd6', rim: '#8aa0ff', bg: '#07121c', exp: 1.28, fog: '#102028' },
   victory: { key: '#fff6d0', fill: '#ffd0ea', rim: '#ffe566', bg: '#2a1048', exp: 1.35, fog: '#402050' },
@@ -13,7 +13,7 @@ const PRESETS = {
 
 export function createStudio(canvas, renderer, look) {
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0xffc9a8, 12, 34);
+  scene.fog = new THREE.Fog(0x0b0b10, 10, 30);
   const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 80);
   camera.position.set(1.15, 1.32, -3.15);
 
@@ -26,7 +26,7 @@ export function createStudio(canvas, renderer, look) {
   controls.autoRotate = true;
   controls.autoRotateSpeed = 0.7;
 
-  const hemi = new THREE.HemisphereLight(0xffd8e8, 0x6a8f5a, 0.9);
+  const hemi = new THREE.HemisphereLight(0xc8a0b8, 0x2a2233, 1.0);
   scene.add(hemi);
   const key = new THREE.DirectionalLight(0xfff0f8, 1.3);
   key.position.set(2.5, 4, 2);
@@ -41,7 +41,7 @@ export function createStudio(canvas, renderer, look) {
   // Ground: a soft grass disc; the trees and shrine come from the shipped env pack.
   const floor = new THREE.Mesh(
     new THREE.CircleGeometry(9, 48),
-    new THREE.MeshToonMaterial({ color: 0x7fbf6a }),
+    new THREE.MeshToonMaterial({ color: 0x2a2530 }),
   );
   floor.rotation.x = -Math.PI / 2;
   scene.add(floor);
@@ -97,7 +97,7 @@ export function createStudio(canvas, renderer, look) {
   }
   const sparkGeo = new THREE.BufferGeometry();
   sparkGeo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-  const sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({ color: 0xffc2dc, size: 0.06, transparent: true, opacity: 0.9 }));
+  const sparks = new THREE.Points(sparkGeo, new THREE.PointsMaterial({ color: 0xf3bccb, sizeAttenuation: false, size: 4, transparent: true, opacity: 0.9 }));
   scene.add(sparks);
 
   let waifu = createWaifu(look, 'full');

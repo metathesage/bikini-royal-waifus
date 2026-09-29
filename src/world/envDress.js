@@ -106,7 +106,6 @@ export const SAKURA_PLACEMENTS = [
   // 120 m of it, no collision, well above the lamp line, and readable from
   // every other district -- which is what a landmark on the long-range
   // district should do.
-  { key: 'dragon', angle: 250, dist: 26, y: 46, rot: 'spin', height: 120, why: 'the sky landmark over the gardens' },
   { key: 'pinkTree', angle: 90, dist: 11, rot: 'spin', height: 7, why: 'the one soft edge on a hard district' },
   ]),
 
@@ -117,7 +116,6 @@ export const SAKURA_PLACEMENTS = [
   // sits on the plateau as a ruin rather than swallowing the district, and the
   // eating house goes on the opposite rim: 55 degrees from the ruin, and clear
   // of all four chest bearings (29, 120, 212, 304).
-  { key: 'overgrown', angle: 300, dist: 11, rot: 'inward', size: 26, why: 'the overgrown thing in the water garden' },
   ]),
 
   ...at('temple', [

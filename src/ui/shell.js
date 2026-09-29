@@ -14,6 +14,11 @@ const GLYPH = {
   gamepad: { interact: 'X', jump: 'A', inspect: 'View', reload: 'X', melee: 'LB', dash: 'RB', use: 'D-Right' },
 };
 
+const HINTS = {
+  gamepad: [['RT', 'Fire'], ['LT', 'Aim'], ['A', 'Jump'], ['B', 'Crouch / Slide'], ['X', 'Reload / Pick up'], ['Y', 'Swap gun'], ['LB', 'Melee'], ['RB', 'Dash'], ['L3', 'Sprint'], ['R3', 'Ability'], ['Back', 'Bag']],
+  keyboard: [['LMB', 'Fire'], ['RMB', 'Aim'], ['Space', 'Jump'], ['Ctrl', 'Crouch / Slide'], ['R', 'Reload'], ['E', 'Pick up / Open'], ['1 2 3', 'Weapon'], ['Shift', 'Sprint'], ['Q', 'Melee'], ['F', 'Dash'], ['Tab', 'Bag']],
+};
+
 const $ = (id) => document.getElementById(id);
 
 export function createShell(bus) {
@@ -23,6 +28,7 @@ export function createShell(bus) {
   let tab = 'model';
   let capture = null;
   let device = 'keyboard';
+  let hintDevice = null;
   const map = document.getElementById('minimap');
   const ctx = map.getContext('2d');
   /** The touch pad's ability key, which mirrors the HUD chip's state. */
@@ -590,6 +596,18 @@ export function createShell(bus) {
     $('scope').classList.toggle('on', !!snap.scope);
     $('vignette').classList.toggle('low', !!snap.low);
     $('vignette').classList.toggle('storm', !!snap.zoneDanger);
+    if (hintDevice !== device) {
+      hintDevice = device;
+      const box = $('hints');
+      box.innerHTML = '';
+      for (const [k, label] of HINTS[device] || HINTS.keyboard) {
+        const row = document.createElement('div');
+        row.innerHTML = `<b></b><span></span>`;
+        row.firstChild.textContent = k;
+        row.lastChild.textContent = label;
+        box.append(row);
+      }
+    }
     const prompt = $('prompt');
     if (snap.prompt) {
       const g = GLYPH[device] || GLYPH.keyboard;

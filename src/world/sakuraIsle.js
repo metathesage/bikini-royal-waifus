@@ -341,7 +341,7 @@ function buildTerrain(parent) {
 
 /** The water sheet the channels and the sea share. */
 function buildWater(parent) {
-  const g = new THREE.PlaneGeometry(SPAN * 2.4, SPAN * 2.4, 1, 1);
+  const g = new THREE.PlaneGeometry(SPAN * 14, SPAN * 14, 1, 1);
   const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({
     color: C.water, transparent: true, opacity: 0.72, depthWrite: false,
   }));
@@ -363,13 +363,13 @@ function buildWater(parent) {
  */
 function buildSkyAndLight(scene) {
   scene.background = null;
-  scene.fog = new THREE.Fog(0xbcd0e8, 120, 460);
+  scene.fog = new THREE.Fog(0xb98a9c, 110, 430);
 
-  const hemi = new THREE.HemisphereLight(0xdfe9ff, 0x3b4351, 0.9);
+  const hemi = new THREE.HemisphereLight(0xf2c9d6, 0x3a2f45, 0.85);
   scene.add(hemi);
 
-  const sun = new THREE.DirectionalLight(0xfff6e6, 1.3);
-  sun.position.set(70, 120, 40);
+  const sun = new THREE.DirectionalLight(0xffd7a8, 1.35);
+  sun.position.set(90, 70, 40);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
   sun.shadow.camera.near = 20;
@@ -392,9 +392,9 @@ function buildSkyAndLight(scene) {
     fog: false,
     toneMapped: false,
     uniforms: {
-      top: { value: new THREE.Color('#5f7fc4') },
-      mid: { value: new THREE.Color('#a8c4e8') },
-      horizon: { value: new THREE.Color('#e6eef8') },
+      top: { value: new THREE.Color('#141428') },
+      mid: { value: new THREE.Color('#6a3f62') },
+      horizon: { value: new THREE.Color('#f0b3a8') },
     },
     vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
     fragmentShader: `varying vec3 vP; uniform vec3 top; uniform vec3 mid; uniform vec3 horizon;
@@ -405,8 +405,12 @@ function buildSkyAndLight(scene) {
         gl_FragColor = vec4(c, 1.0);
       }`,
   });
-  const sky = new THREE.Mesh(new THREE.SphereGeometry(500, 20, 14), skyMat);
+  skyMat.depthTest = false;
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(400, 24, 16), skyMat);
   sky.name = 'isle-sky';
+  // Follows the camera (match.js), so no part of it is ever past the far plane.
+  sky.renderOrder = -1000;
+  sky.frustumCulled = false;
   scene.add(sky);
 
   return { sky, sun, hemi };
