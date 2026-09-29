@@ -3143,9 +3143,9 @@ function beginBus() {
     }
     for (const s of supply) if (!s.opened) snap.dots.push({ x: s.x, z: s.z, kind: 'drop' });
     // The range has no storm, so the minimap must not draw one. It was drawing
-    // the island's 125m circle centred 38m off the firing line, which is a thing
-    // that does not exist here — and a player who trusts the minimap to mean
-    // something stops trusting the numbers on the range panel too.
+    // the island's opening circle centred 38m off the firing line, which is a
+    // thing that does not exist here — and a player who trusts the minimap to
+    // mean something stops trusting the numbers on the range panel too.
     snap.zone = world.isGraybox ? null : { x: zone.x, z: zone.z, r: zone.r };
     // The minimap's POI layer is a list of island landmarks. On the range it
     // plotted four places that are not on this map. The lanes take their place.

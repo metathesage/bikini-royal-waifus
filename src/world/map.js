@@ -159,6 +159,13 @@ function makeLit(scene) {
       // colour show. This is the case that made the lobby deck, its pillars and
       // the market stalls read as black cut-outs.
       detachBlackMap(m);
+      // Tree packs: the blossom canopy ships crimson + metallic, the leaf/trunk pair
+      // ships as spec-gloss and lands as white. Give both a real palette.
+      if (m.color) {
+        if (m.color.r > 0.5 && m.color.g < 0.1 && m.color.b < 0.3) { m.color.set('#ffa3c9'); if ('metalness' in m) m.metalness = 0; }
+        else if (/leaves/i.test(m.name || '')) { m.color.set('#6fbf5c'); m.alphaTest = 0.4; m.transparent = false; }
+        else if (/trunk/i.test(m.name || '')) m.color.set('#6b4a3a');
+      }
       // 3. The case the first two cannot reach: a Phong/Lambert material whose
       // base colour is already near-black. These packs multiply a dark navy
       // (#0041a3, luminance 0.06) by their texture, and the result is a stall

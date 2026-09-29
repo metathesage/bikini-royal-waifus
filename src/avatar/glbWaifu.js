@@ -25,6 +25,8 @@ export function createGlbWaifu(look, detail = 'full') {
     new THREE.MeshToonMaterial({ color: look?.skin || '#ffd0c2' }),
   );
   placeholder.position.y = 0.85;
+  // Only the menu/viewer shows a stand-in while streaming; bots pop in instead of appearing as capsules.
+  placeholder.visible = full;
   visual.add(placeholder);
 
   let model = null;
@@ -132,7 +134,7 @@ export function createGlbWaifu(look, detail = 'full') {
         for (const clip of source.animations) {
           const n = (clip.name || '').toLowerCase();
           if (!clips.idle && /(idle|stand|standby)/.test(n)) clips.idle = clip;
-          else if (!clips.walk && /(walk)/.test(n)) clips.walk = clip;
+          else if (!clips.walk && /(walk|^step$)/.test(n)) clips.walk = clip;
           else if (!clips.run && /(run|sprint|jog)/.test(n)) clips.run = clip;
           else if (!clips.jump && /(jump|fall)/.test(n)) clips.jump = clip;
           else if (!clips.crouch && /crouch/.test(n)) clips.crouch = clip;
@@ -147,6 +149,17 @@ export function createGlbWaifu(look, detail = 'full') {
         // for every static one.
         useClips = !!(clips.idle || clips.walk || clips.run);
         if (useClips && clips.idle) playClip('idle');
+        // Some game exports bake a root offset into their clips (Mai stands 3.8m off
+        // the origin once Standby plays). Re-centre on the posed body, not the bind pose.
+        mixer.update(0);
+        scene.updateMatrixWorld(true);
+        const posed = new THREE.Box3().setFromObject(scene, true);
+        if (Number.isFinite(posed.min.x)) {
+          const c = posed.getCenter(new THREE.Vector3());
+          scene.position.x -= c.x;
+          scene.position.z -= c.z;
+          scene.position.y -= posed.min.y;
+        }
       }
       load.state = 'ready';
       load.progress = 1;

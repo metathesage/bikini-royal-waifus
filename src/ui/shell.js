@@ -20,7 +20,7 @@ export function createShell(bus) {
   const ui = document.getElementById('ui');
   let screen = 'splash';
   let focus = 0;
-  let tab = 'outfit';
+  let tab = 'model';
   let capture = null;
   let device = 'keyboard';
   const map = document.getElementById('minimap');
@@ -300,7 +300,7 @@ export function createShell(bus) {
     if (tab === 'model') {
       const note = document.createElement('p');
       note.className = 'fine';
-      note.textContent = 'Imported waifus wear their own look — Procedural Cutie uses every locker option.';
+      note.textContent = 'Pick the waifu you drop in as.';
       sw.append(note);
     }
     if (tab === 'candidates') {

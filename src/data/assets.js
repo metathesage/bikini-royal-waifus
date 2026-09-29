@@ -20,6 +20,11 @@ export const CHARACTERS = {
   fox: { id: 'fox', name: 'Fox', rarity: 'rare', url: '/assets/characters/animated/fox.glb' },
   dragon: { id: 'dragon', name: 'Dragon', rarity: 'legendary', url: '/assets/characters/animated/dragon.glb' },
   bald_eagle: { id: 'bald_eagle', name: 'Eagle', rarity: 'epic', url: '/assets/characters/animated/bald_eagle.glb' },
+  // The skinned anime models from the character library, driven by clips or the rig.
+  mai_maid: { id: 'mai_maid', name: 'Mai', rarity: 'epic', url: '/assets/characters/mai_maid_-bourin.glb' },
+  kasumi: { id: 'kasumi', name: 'Kasumi', rarity: 'legendary', url: '/assets/characters/Kasumi_Tactical_Sailor.glb' },
+  scifi_waifu: { id: 'scifi_waifu', name: 'Vanguard', rarity: 'epic', url: '/assets/characters/SciFi_Waifu_Soldier.glb' },
+  citlali: { id: 'citlali', name: 'Citlali', rarity: 'epic', url: '/assets/characters/citlali.glb' },
 };
 /** Weapon viewmodel GLBs (Styloo normal-version) per gun id. */
 export const WEAPON_GLB = {
@@ -417,6 +422,10 @@ export const CHARACTER_MB = {
   dragon: 0.74,
   bald_eagle: 0.36,
   soldier_rigged: 0.21,
+  mai_maid: 4.3,
+  kasumi: 8.9,
+  scifi_waifu: 9.2,
+  citlali: 8.5,
 };
 /**
  * The cheapest character GLBs in the locker.
@@ -768,7 +777,7 @@ export function normalizeScene(scene, targetHeight = 1.7, opts = {}) {
   const { faceCamera = false, up = 'auto' } = opts;
 
   scene.updateMatrixWorld(true);
-  let box = new THREE.Box3().setFromObject(scene);
+  let box = new THREE.Box3().setFromObject(scene, true);
   let size = box.getSize(new THREE.Vector3());
 
   // Some exporters ship Z-up (or -Z-up) models. A standing humanoid always has
@@ -788,14 +797,14 @@ export function normalizeScene(scene, targetHeight = 1.7, opts = {}) {
     holder.rotation.x = -Math.PI / 2; // +Z -> +Y
     holder.add(scene);
     holder.updateMatrixWorld(true);
-    const turned = new THREE.Box3().setFromObject(holder);
+    const turned = new THREE.Box3().setFromObject(holder, true);
     const turnedSize = turned.getSize(new THREE.Vector3());
     // Undo the parent, then apply the same turn to the scene directly.
     scene.position.set(0, 0, 0);
     holder.remove(scene);
     scene.rotation.x -= Math.PI / 2;
     scene.updateMatrixWorld(true);
-    box = new THREE.Box3().setFromObject(scene);
+    box = new THREE.Box3().setFromObject(scene, true);
     size = box.getSize(new THREE.Vector3());
     // Scaling is derived from the turned height, which the caller reads back
     // through `size`; fall back to the measured value when the direct turn
@@ -807,7 +816,7 @@ export function normalizeScene(scene, targetHeight = 1.7, opts = {}) {
   scene.scale.setScalar(scale);
   scene.updateMatrixWorld(true);
 
-  box = new THREE.Box3().setFromObject(scene);
+  box = new THREE.Box3().setFromObject(scene, true);
   const center = box.getCenter(new THREE.Vector3());
   scene.position.x -= center.x;
   scene.position.z -= center.z;

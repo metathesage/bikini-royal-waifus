@@ -155,14 +155,14 @@ export function isleHeightAt(x, z) {
  * ------------------------------------------------------------------ */
 
 const C = {
-  ground: 0x6b7380,
-  seabed: 0x49515e,
-  sand: 0x9a9184,
-  mass: 0xdfe3ea,
-  massAlt: 0xc2c8d3,
+  ground: 0x6fae5a,
+  seabed: 0x2f6f86,
+  sand: 0xead7a8,
+  mass: 0xf4e7d3,
+  massAlt: 0xd8a56a,
   // Mid grey. Sits between the light mass and the dark ground so accent
   // structures read as their own layer without competing with either.
-  accent: 0x949cad,
+  accent: 0xc9524f,
   // The darkest structural tone. This was 0x2f3540 and read as a black hole
   // punched through the scene: the toon ramp's lowest band is 64/255, so a
   // surface already that dark lands at ~0.05 luminance on its unlit side and
@@ -170,8 +170,8 @@ const C = {
   // here to `mass` is about 2.5 stops, which is enough to read as "darker
   // material" without anything becoming a void. graybox.js documents the same
   // failure at length when the range tried to be honestly black.
-  dark: 0x5d6573,
-  water: 0x35647f,
+  dark: 0x5a4650,
+  water: 0x3fa9c9,
 };
 
 let RAMP = null;
