@@ -17,6 +17,7 @@ await wait(25000);
 await p.evaluate(() => window.__brSkipBus());
 await wait(1000);
 await wait(9000);
+await p.keyboard.press('KeyM'); await wait(3000); await p.screenshot({ path: prefix + '-map.png' }); await p.keyboard.press('KeyM'); await wait(1500);
 await p.evaluate(() => { window.__brFreeCam(null); const m = window.__brMatch(); m.player.pos.set(20, 3, 20); m.player.gliding = false; m.player.channel = { id: 'veil', t: 60, max: 60 }; });
 await wait(6000); await p.screenshot({ path: `${prefix}-drink.png` });
 await p.evaluate(() => { document.getElementById('ui').style.display = 'none'; });

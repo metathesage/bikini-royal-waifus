@@ -270,9 +270,10 @@
       <div class="bag" id="bag" hidden aria-hidden="true">
         <div class="bag-panel">
           <header>
-            <h3>Loadout</h3>
+            <h3>Map &amp; Loadout</h3>
             <span class="bag-count" id="bag-count">0/6</span>
           </header>
+          <canvas class="bigmap" id="bigmap" width="1000" height="1000"></canvas>
           <div class="bag-body">
             <div class="bag-grid" id="bag-grid" role="listbox" aria-label="Inventory slots"></div>
             <div class="bag-side">
@@ -285,7 +286,7 @@
                 <button type="button" id="bag-sort" disabled>Sort</button>
               </div>
               <p class="bag-hint">
-                <kbd>Tab</kbd> close &middot; <kbd>&larr;</kbd><kbd>&rarr;</kbd> pick slot
+                <kbd>Tab</kbd> / <kbd>M</kbd> close &middot; <kbd>&larr;</kbd><kbd>&rarr;</kbd> pick slot
                 &middot; <kbd>Enter</kbd> use &middot; drag to reorder
               </p>
             </div>

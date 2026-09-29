@@ -2233,3 +2233,21 @@ input[type=range] { accent-color: var(--gold); }
 .hints div { display: flex; align-items: center; gap: 0.5rem; font-size: 0.62rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--fg-dim); text-shadow: 0 1px 2px #000; }
 .hints b { min-width: 2.6rem; text-align: center; padding: 0.12rem 0.35rem; color: #0b0a0d; background: var(--gold); font-weight: 700; clip-path: var(--deco); }
 .hints span { background: rgba(8, 8, 11, 0.55); padding: 0.05rem 0.4rem; }
+
+/* Button glyph on every action slot. */
+.slot { position: relative; }
+.keycap { position: absolute; top: 3px; left: 5px; z-index: 3; padding: 0.02rem 0.4rem; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.08em; color: #0b0a0d; background: var(--gold); clip-path: var(--deco); }
+.keycap.use { left: auto; right: 5px; background: var(--pink); }
+
+
+/* Compass: cardinal ticks and a heading readout. */
+.compass i { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px solid rgba(201, 164, 90, 0.35); transform: translateX(-50%); font-style: normal; }
+.compass i.tick { top: 62%; }
+.compass i.card { top: 8%; bottom: auto; border: 0; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.1em; color: var(--gold); }
+.compass u { position: absolute; left: 50%; bottom: -15px; transform: translateX(-50%); font-size: 0.62rem; letter-spacing: 0.2em; text-decoration: none; color: var(--chrome-0); background: rgba(8, 8, 11, 0.85); padding: 0 0.4rem; border: 1px solid var(--rule-hard); }
+/* Full map inside the bag. */
+.bag-panel { width: min(1180px, 96vw) !important; max-height: 94vh; display: grid; grid-template-columns: min(74vh, 640px) 1fr; grid-template-areas: "head head" "map body"; gap: 14px 18px; }
+.bag-panel header { grid-area: head; }
+.bag-panel .bigmap { grid-area: map; width: 100%; aspect-ratio: 1; border: 1px solid var(--rule-hard); box-shadow: inset 0 0 0 3px #08080b; }
+.bag-panel .bag-body { grid-area: body; }
+@media (max-width: 900px) { .bag-panel { grid-template-columns: 1fr; grid-template-areas: "head" "map" "body"; } }

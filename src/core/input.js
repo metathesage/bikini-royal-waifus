@@ -144,7 +144,7 @@ export function createInput(getSettings) {
       use = keys.has(b.use);
       swap = keys.has(b.swap);
       drop = keys.has('KeyG');
-      inv = keys.has('Tab');
+      inv = keys.has('Tab') || keys.has('KeyM');
       inspect = keys.has(b.inspect);
       emote = keys.has(b.emote);
       score = keys.has(b.score);

@@ -669,6 +669,7 @@ export function createShell(bus) {
     // to answer "what is in my hand and what am I carrying" from the HUD alone,
     // without opening the bag -- the bag is for reordering, the HUD is for
     // knowing, and putting one behind the other meant neither could do its job.
+    let wi = 0;
     for (const w of snap.loadout || []) {
       const s = document.createElement('b');
       s.className = 'slot' + (w.empty ? ' empty' : '') + (w.on ? ' on' : '');
@@ -692,6 +693,18 @@ export function createShell(bus) {
         tag.textContent = 'IN HAND';
         s.append(tag);
       }
+      // The button that gets you to this slot, in the glyphs of whatever you are holding.
+      {
+        const pad = device === 'gamepad';
+        const label = pad ? (w.kind === 'melee' ? 'LB' : w.on || w.empty ? '' : 'Y') : String(wi + 1);
+        if (label) {
+          const k = document.createElement('span');
+          k.className = 'keycap';
+          k.textContent = label;
+          s.append(k);
+        }
+      }
+      wi += 1;
       hot.append(s);
     }
     if ((snap.loadout || []).length) {
@@ -737,6 +750,10 @@ export function createShell(bus) {
         tag.className = 'equipped';
         tag.textContent = 'SELECTED';
         s.append(tag);
+        const k = document.createElement('span');
+        k.className = 'keycap use';
+        k.textContent = device === 'gamepad' ? 'D-Pad ' + String.fromCodePoint(0x2192) + ' use' : 'C use';
+        s.append(k);
       }
       s.addEventListener('click', () => bus.selectItem(item.index));
       hot.append(s);
@@ -764,6 +781,24 @@ export function createShell(bus) {
     }
     const comp = $('compass');
     comp.innerHTML = '';
+    {
+      // Heading in degrees, 0 = north, clockwise. Turning left (yaw up) turns you towards west.
+      const heading = -(snap.yaw || 0);
+      const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+      const CARD = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SW', 270: 'W', 315: 'NW' };
+      for (let d = 0; d < 360; d += 15) {
+        const rel = wrap((d * Math.PI) / 180 - heading);
+        if (Math.abs(rel) > 1.2) continue;
+        const el = document.createElement('i');
+        el.style.left = `${50 + (rel / 1.2) * 50}%`;
+        if (CARD[d]) { el.className = 'card'; el.textContent = CARD[d]; } else el.className = 'tick';
+        comp.append(el);
+      }
+      const deg = ((Math.round((heading * 180) / Math.PI) % 360) + 360) % 360;
+      const dial = document.createElement('u');
+      dial.textContent = String(deg).padStart(3, '0');
+      comp.append(dial);
+    }
     for (const c of snap.compass) {
       if (Math.abs(c.ang) > 1.2) continue;
       const el = document.createElement('b');
@@ -985,13 +1020,93 @@ export function createShell(bus) {
      */
     // You. A wedge, not a dot, so "which way am I facing" is answerable
     // without leaving the minimap.
-    ctx.fillStyle = '#fff';
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    ctx.rotate(-(snap.yaw || 0));
+    // A view cone, then the arrow: "where am I looking" at a glance.
+    const cone = ctx.createLinearGradient(0, 0, 0, -w * 0.32);
+    cone.addColorStop(0, 'rgba(255, 143, 191, 0.55)');
+    cone.addColorStop(1, 'rgba(255, 143, 191, 0)');
+    ctx.fillStyle = cone;
     ctx.beginPath();
-    ctx.moveTo(w / 2, h / 2 - 7);
-    ctx.lineTo(w / 2 - 5, h / 2 + 5);
-    ctx.lineTo(w / 2 + 5, h / 2 + 5);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(-w * 0.16, -w * 0.32);
+    ctx.lineTo(w * 0.16, -w * 0.32);
     ctx.closePath();
     ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#08080b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, -8);
+    ctx.lineTo(-6, 7);
+    ctx.lineTo(0, 4);
+    ctx.lineTo(6, 7);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** The full-screen map, shown inside the bag: whole island, zone, districts, and you. */
+  function drawBigMap(snap) {
+    const cv = $('bigmap');
+    if (!cv) return;
+    const c2 = cv.getContext('2d');
+    const S = cv.width;
+    if (!mapShot && window.__brMapImage) mapShot = window.__brMapImage();
+    const R = (window.__brMapRadius && window.__brMapRadius()) || 62;
+    c2.clearRect(0, 0, S, S);
+    c2.fillStyle = '#0c0a10';
+    c2.fillRect(0, 0, S, S);
+    if (mapShot) c2.drawImage(mapShot, 0, 0, S, S);
+    c2.fillStyle = 'rgba(12, 8, 20, 0.18)';
+    c2.fillRect(0, 0, S, S);
+    const X = (x) => (x / R + 1) * 0.5 * S;
+    const Z = (z) => (z / R + 1) * 0.5 * S;
+    const k = S / (2 * R);
+    if (snap.zone) {
+      c2.strokeStyle = '#ff4fd8';
+      c2.lineWidth = 4;
+      c2.beginPath();
+      c2.arc(X(snap.zone.x), Z(snap.zone.z), snap.zone.r * k, 0, Math.PI * 2);
+      c2.stroke();
+      c2.fillStyle = 'rgba(255, 79, 216, 0.10)';
+      c2.beginPath();
+      c2.rect(0, 0, S, S);
+      c2.arc(X(snap.zone.x), Z(snap.zone.z), snap.zone.r * k, 0, Math.PI * 2, true);
+      c2.fill('evenodd');
+    }
+    c2.textAlign = 'center';
+    c2.font = '600 26px "Josefin Sans", sans-serif';
+    for (const p of snap.pois || []) {
+      const x = X(p.x); const z = Z(p.z);
+      c2.fillStyle = p.color || '#fff';
+      c2.beginPath();
+      c2.moveTo(x, z - 9); c2.lineTo(x + 9, z); c2.lineTo(x, z + 9); c2.lineTo(x - 9, z);
+      c2.closePath();
+      c2.fill();
+      c2.lineWidth = 5;
+      c2.strokeStyle = '#08080b';
+      c2.strokeText(p.name.toUpperCase(), x, z - 22);
+      c2.fillStyle = '#f6efe0';
+      c2.fillText(p.name.toUpperCase(), x, z - 22);
+    }
+    c2.save();
+    c2.translate(X(snap.px || 0), Z(snap.pz || 0));
+    c2.rotate(-(snap.yaw || 0));
+    c2.fillStyle = '#e58fa8';
+    c2.strokeStyle = '#08080b';
+    c2.lineWidth = 4;
+    c2.beginPath();
+    c2.moveTo(0, -20); c2.lineTo(-13, 15); c2.lineTo(0, 8); c2.lineTo(13, 15);
+    c2.closePath();
+    c2.fill();
+    c2.stroke();
+    c2.restore();
+    c2.fillStyle = '#c9a45a';
+    c2.font = '700 30px "Josefin Sans", sans-serif';
+    c2.fillText('N', S / 2, 34);
   }
   function progress(p, caption) {
     $('load-fill').style.width = `${Math.round(p * 100)}%`;
@@ -1033,6 +1148,7 @@ export function createShell(bus) {
   function renderBag(snap) {
     bagSnap = snap;
     if (!bagOpen) return;
+    drawBigMap(snap);
     const items = snap.items || [];
     $('bag-count').textContent = `${snap.invUsed || 0}/${snap.invCap || items.length}`;
     $('bag-count').classList.toggle('full', (snap.invUsed || 0) >= (snap.invCap || 0));

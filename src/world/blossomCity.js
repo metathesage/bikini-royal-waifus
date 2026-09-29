@@ -15,7 +15,8 @@ import { buildUfo, buildLobby } from './sakuraIsle.js';
  * the same height function the collision uses.
  */
 
-export const CITY_R = 205;
+const S = 0.88;
+export const CITY_R = 205 * S;
 const BED = -6;
 const ROAD_H = 1.6;
 
@@ -35,15 +36,15 @@ const URLS = {
 
 export const CITY_POIS = [
   { id: 'downtown', name: 'Neon Downtown', x: 0, z: 0, r: 40, h: 1.6, color: '#e58fa8' },
-  { id: 'village', name: 'Sakura Village', x: -118, z: -78, r: 36, h: 2.2, color: '#f3bccb' },
-  { id: 'temple', name: 'Celestial Temple', x: 12, z: -150, r: 34, h: 13, color: '#e9d3a1' },
-  { id: 'harbor', name: 'Harbor Market', x: 128, z: -52, r: 36, h: 1.4, color: '#c9a45a' },
-  { id: 'gardens', name: 'Moon Gardens', x: -108, z: 88, r: 36, h: 1.8, color: '#b98fa1' },
-  { id: 'station', name: 'Skyline Station', x: 118, z: 92, r: 36, h: 1.6, color: '#8fd3ff' },
+  { id: 'village', name: 'Sakura Village', x: -118 * S, z: -78 * S, r: 36, h: 2.2, color: '#f3bccb' },
+  { id: 'temple', name: 'Celestial Temple', x: 12 * S, z: -150 * S, r: 34, h: 13, color: '#e9d3a1' },
+  { id: 'harbor', name: 'Harbor Market', x: 128 * S, z: -52 * S, r: 36, h: 1.4, color: '#c9a45a' },
+  { id: 'gardens', name: 'Moon Gardens', x: -108 * S, z: 88 * S, r: 36, h: 1.8, color: '#b98fa1' },
+  { id: 'station', name: 'Skyline Station', x: 118 * S, z: 92 * S, r: 36, h: 1.6, color: '#8fd3ff' },
 ];
 const BY_ID = Object.fromEntries(CITY_POIS.map((p) => [p.id, p]));
 
-const RIVER = [[-215, 15], [-150, 6], [-96, 8], [-60, -8], [-48, -50], [-40, -95], [-26, -140], [-16, -215]];
+const RIVER = [[-215, 15], [-150, 6], [-96, 8], [-60, -8], [-48, -50], [-40, -95], [-26, -140], [-16, -215]].map(([x, z]) => [x * S, z * S]);
 const RIVER_W = 8;
 const ROADS = [
   ['downtown', 'village'], ['downtown', 'temple'], ['downtown', 'harbor'], ['downtown', 'gardens'], ['downtown', 'station'],
@@ -536,9 +537,9 @@ export function buildBlossomCity(scene, seed = 5, renderer = null) {
     followSun: true,
     /** Match tuning for a map this size; read by match.js. */
     profile: {
-      zoneR: 205, zoneCenter: [0, 0], zoneJitter: 55, oceanR: 232, mapR: 245,
-      busTime: 26, planScale: 3.3, shrinkScale: 1.5, botPoiSpread: 26,
-      bus: (u) => ({ x: -235 + 470 * u, y: 128 + Math.sin(u * Math.PI) * 10, z: 120 - 240 * u }),
+      zoneR: 205 * S, zoneCenter: [0, 0], zoneJitter: 50, oceanR: 232 * S, mapR: 245 * S,
+      busTime: 24, planScale: 2.9, shrinkScale: 1.5, botPoiSpread: 26,
+      bus: (u) => ({ x: (-235 + 470 * u) * S, y: 128 + Math.sin(u * Math.PI) * 10, z: (120 - 240 * u) * S }),
     },
   };
 }

@@ -192,7 +192,7 @@ setAssetManifest(JSON.parse(readFileSync(
   if (added !== roster.length) throw new Error(`locker took ${added}/${roster.length} rigged characters`);
 
   const bots = createRoster('Yuna');
-  if (bots.length !== 21) throw new Error(`expected 21 bots, got ${bots.length}`);
+  if (bots.length !== 49) throw new Error(`expected 49 bots, got ${bots.length}`);
   await assignBotModels(bots);
 
   /**

@@ -891,7 +891,7 @@ let ufoDepart = -1;
    * headless harness rather than throwing on a canvas it cannot fill.
    */
   let mapImage = null;
-  function buildMapImage(size = 1024) {
+  function buildMapImage(size = 2048) {
     if (!renderer || !world || !scene) return null;
     if (mapImage) return mapImage;
     const R = prof.mapR;
@@ -3013,6 +3013,8 @@ function beginBus() {
       b.avatar.group.position.set(b.pos.x, b.pos.y, b.pos.z);
       if (b.state !== 'bus') b.avatar.group.rotation.y = b.yaw;
       const d = Math.hypot(b.pos.x - player.pos.x, b.pos.z - player.pos.z);
+      // 49 rigged bots is too many to draw and animate at once: anyone past fog range is skipped.
+      if (d > 135) { b.avatar.group.visible = false; continue; }
       b.avatar.update(dt, {
         speed: Math.hypot(b.vel.x, b.vel.z),
         sprint: Math.hypot(b.vel.x, b.vel.z) > 6,
