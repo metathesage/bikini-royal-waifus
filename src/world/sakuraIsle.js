@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { makeBox } from '../game/collision.js';
 import { setTerrain, buildChest, createKit, SEA_Y } from './map.js';
 import { dressEnvironment, ENV_PLACEMENTS } from './envDress.js';
+import { ENVIRONMENT_GLB } from '../data/assets.js';
 
 /* ------------------------------------------------------------------ *
  * Sakura Isle: the greybox blockout.
@@ -429,6 +430,8 @@ class Builder {
     this.group = group;
     this.boxes = boxes;
     this.anchors = { chests: [], floors: [], crystals: [], drops: [] };
+    /** Real GLB buildings to hang over collision-only footprints, resolved once the kit exists. */
+    this.skins = [];
     this.mass = new Batch(massMat(C.mass), 'isle-mass');
     this.alt = new Batch(massMat(C.massAlt), 'isle-mass-alt');
     this.dark = new Batch(massMat(C.dark), 'isle-dark');
@@ -452,6 +455,17 @@ class Builder {
     const bw = w * c + d * s;
     const bd = w * s + d * c;
     this.boxes.push(makeBox(x, y, z, bw, h, bd, tag));
+  }
+
+  /**
+   * A building: collision here, art from an imported GLB.
+   * `size` is the longest footprint edge the model is fitted to.
+   */
+  building(key, x, y, z, w, h, d, ry, size, modelYaw = 0) {
+    const c = Math.abs(Math.cos(ry));
+    const sn = Math.abs(Math.sin(ry));
+    this.boxes.push(makeBox(x, y + h / 2, z, w * c + d * sn, h, w * sn + d * c, 'solid'));
+    this.skins.push({ key, x, y, z, ry: ry + modelYaw, size });
   }
 
   /** A solid cylinder, for columns, trunks and silo shapes. */
@@ -535,22 +549,17 @@ function buildPlaza(B, rng) {
   // failure the last island had, just at a smaller scale. Pushing the ring
   // out and thinning it keeps the middle of the square open to fight in,
   // which is the entire reason a hub exists.
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2 + 0.39;
-    const d = 14;
-    const bx = p.x + Math.cos(a) * d;
-    const bz = p.z + Math.sin(a) * d;
+  for (let i = 0; i < 4; i++) {
+    const a = Math.PI / 4 + i * (Math.PI / 2);
+    const bx = p.x + Math.cos(a) * 16;
+    const bz = p.z + Math.sin(a) * 16;
     const by = g(bx, bz);
-    const w = 4 + rng() * 1.5;
-    const dp = 4 + rng() * 1.5;
-    const h = i % 2 ? 5 : 8.5;
-    B.box(i % 2 ? B.mass : B.alt, bx, by + h / 2, bz, w, h, dp, -a + 0.2);
-    // A parapet, so roofs are readable as ledges and give a height cue.
-    B.box(B.dark, bx, by + h + 0.25, bz, w + 0.5, 0.5, dp + 0.5, -a + 0.2);
-    if (i % 3 === 0) {
-      B.box(B.accent, bx, by + h + 1.1, bz, 1.6, 1.2, 1.6, -a);
-      B.anchors.floors.push({ x: bx, y: by + h + 0.6, z: bz, poi: p.id });
-    }
+    const w = 8;
+    const dp = 5.8;
+    const h = 5.2;
+    // Real restaurant GLB over a footprint-matched, axis-aligned collision box.
+    B.building('restaurant', bx, by, bz, w, h, dp, i % 2 ? Math.PI / 2 : 0, 8.2);
+    if (i % 2 === 0) B.anchors.floors.push({ x: bx, y: by + h + 0.1, z: bz, poi: p.id });
   }
 
   // The clock tower: the one thing on the map you can navigate by from
@@ -628,12 +637,10 @@ function buildSakura(B, rng) {
     const hx = p.x - 7.5 + (i % 3) * 7.5;
     const hz = p.z + side * 6.5;
     const hy = g(hx, hz);
-    const w = 5.5;
-    const dp = 5;
-    const h = 3.2;
-    B.box(B.alt, hx, hy + h / 2, hz, w, h, dp);
-    // A wide, low pyramid roof: cheap, and unmistakably a roof in silhouette.
-    B.decor(B.cone, hx, hy + h + 1.1, hz, w * 1.5, 2.4, dp * 1.5, Math.PI / 4, 0, Math.PI / 4);
+    const w = 6.4;
+    const dp = 4.4;
+    const h = 3.4;
+    B.building('izakaya', hx, hy, hz, w, h, dp, side > 0 ? Math.PI / 2 : -Math.PI / 2, 6.6, Math.PI / 2);
     // Porch rail: waist-high cover you actually fight behind.
     B.box(B.dark, hx, hy + 1.1, hz - side * 3.2, w * 0.8, 2.2, 0.4);
     // Loot on the porch, between the rail and the lane, rather than at the
@@ -1253,6 +1260,11 @@ export function buildSakuraIsle(scene, seed = 7, renderer = null) {
    */
   const kit = renderer ? createKit(group, boxes) : null;
   if (kit) dressEnvironment(kit, ENV_PLACEMENTS.sakura, (id) => BY_ID[id]);
+  if (kit) {
+    for (const k of B.skins) {
+      kit.put(ENVIRONMENT_GLB[k.key], { x: k.x, z: k.z, y: k.y, ground: false, rotY: k.ry, size: k.size, up: 'y', tag: 'env', shadow: true });
+    }
+  }
 
   const settled = settleAnchors(B.anchors, boxes);
   const nudged = deconflictAnchors(B.anchors, boxes);

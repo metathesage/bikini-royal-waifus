@@ -69,7 +69,7 @@ export const SAKURA_PLACEMENTS = [
   // on its first run. The hub keeps street furniture instead and the buildings
   // go to the quieter districts, which is also the right call for play: the
   // square exists to be crossed.
-  { key: 'vending', angle: 232, dist: 11.5, y: PLAZA_DECK, rot: 'inward', height: 1.85, box: [1.1, 1.85, 1.1], why: 'machine against the stall line' },
+  { key: 'vending', angle: 0, dist: 11.5, y: PLAZA_DECK, rot: 'inward', height: 1.85, box: [1.1, 1.85, 1.1], why: 'machine against the stall line' },
   { key: 'neonSign', angle: 172, dist: 15, y: PLAZA_DECK, rot: 'inward', height: 5, why: 'the sign you navigate the hub by' },
   { key: 'trafficLight', angle: 292, dist: 13.5, y: PLAZA_DECK, rot: 'inward', height: 4.6, why: 'junction furniture on the west edge' },
   ]),

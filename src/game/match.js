@@ -1604,6 +1604,15 @@ function beginBus() {
     else player.combo = 0;
   }
 
+  /** Approximate muzzle position in world space, for third-person tracers. */
+  function gunPointWorld(out0) {
+    const p = new THREE.Vector3(0.32, -0.28, -0.75);
+    eye.updateMatrixWorld(true);
+    yawPivot.updateMatrixWorld(true);
+    eye.localToWorld(p);
+    return p;
+  }
+
   function currentGun() {
     if (player.active === 2) return null;
     const g = player.guns[player.active];
@@ -1613,6 +1622,7 @@ function beginBus() {
   function syncWeapon() {
     const spec = player.active === 2 ? meleeById(player.meleeId) : (currentGun() || meleeById(player.meleeId));
     viewmodel.setWeapon(spec.id, look().wrap, look().charm);
+    if (hero) hero.attachWeapon(createWeaponMesh(spec.id, look().wrap, look().charm));
     if (!currentGun()) player.active = 2;
     // A swap clears the streak. The plinths are a walk away, so an A/B of two
     // guns is the single most common thing a tester does on this range, and a
@@ -1643,6 +1653,7 @@ function beginBus() {
     player.recoilY += (player.recoilStep % 2 ? 1 : -1) * spec.yaw;
     player.bloom += spec.spreadAdd;
     viewmodel.punch();
+    fovKick = 1;
     audio.sfx(spec.id === 'shot' ? 'shot' : spec.id === 'smg' ? 'smg' : spec.id === 'snip' ? 'snip' : spec.id === 'pistol' ? 'pistol' : 'ar');
     const origin = new THREE.Vector3();
     camera.getWorldPosition(origin);
@@ -1727,7 +1738,9 @@ function beginBus() {
     // pellet to reach the world - so the line always agrees with the impact
     // it ends at.
     const fxEnd = firstHit ? firstHit.end : (firstWorld || origin.clone().addScaledVector(_dir, 60));
-    fx.tracer(origin, fxEnd, '#ffd6ea');
+    // In third person the round leaves the gun, not the lens.
+    const visOrigin = tpsActive() ? gunPointWorld(origin) : origin;
+    fx.tracer(visOrigin, fxEnd, '#ffd6ea');
     if (firstHit) {
       // An upright ring on a body, a flat one on the world. Same shot, two
       // very different events, and the difference is what makes "hit or miss"
@@ -1738,7 +1751,8 @@ function beginBus() {
       fx.burst(fxEnd, '#efe6ff', 4, 2);
       fx.ring(fxEnd, '#efe6ff', true);
     }
-    fx.muzzle(origin.clone().addScaledVector(_dir, 0.6));
+    fx.muzzle(visOrigin.clone().addScaledVector(_dir, 0.6));
+    if (hero && hero.fire) hero.fire();
     if (any) {
       // Fortnite-style damage number at the point of impact, on every map.
       if (!world.isGraybox && firstHit) fx.number(firstHit.end, String(Math.round(shotDmg)), head ? '#ffe566' : '#ffffff');
@@ -2900,7 +2914,7 @@ function beginBus() {
     const moving = Math.hypot(player.vel.x, player.vel.z);
     const pose = clock.phase === 'end' && result && result.win ? (look().victory || 'sparkle') : emoteT > 0 ? (look().emote || 'blowkiss') : 'idle';
     if (hero) {
-      hero.group.visible = inspect || emoteT > 0 || clock.phase === 'end' || clock.phase === 'lobby' && inspect;
+      hero.group.visible = tpsActive() || inspect || emoteT > 0 || clock.phase === 'end' || clock.phase === 'lobby' && inspect;
       const show = hero.group.visible;
       hero.group.visible = show;
       hero.setPose(pose);
@@ -2913,6 +2927,10 @@ function beginBus() {
         knocked: player.knocked && !inspect,
         dead: !player.alive && clock.phase === 'end' && result && !result.win,
         vy: player.vel.y,
+        crouch: player.crouch,
+        grounded: player.grounded,
+        aiming: aimHeld,
+        mv: tpsActive() ? player.localMove : null,
       });
     }
     viewmodel.group.visible = !hero.group.visible && player.alive && clock.phase !== 'end';
@@ -2987,9 +3005,20 @@ function beginBus() {
     rig.position.copy(player.pos);
   }
 
+  /** Over-the-shoulder third person while the player is alive and playing. */
+  function tpsActive() {
+    return clock.phase === 'play' && player.alive && !inspect && emoteT <= 0 && !world.isGraybox;
+  }
+  let fovKick = 0;
+  const _camWant = new THREE.Vector3();
+  const _camEye = new THREE.Vector3();
+  const _camDir = new THREE.Vector3();
+
   function applyCamera(dt, input, settings) {
     syncRigTransform();
-    const ads = aimHeld && viewmodel.group.visible && player.active < 2 && currentGun();
+    const tps = tpsActive();
+    if (input) player.localMove = { x: input.moveX || 0, y: input.moveY || 0 };
+    const ads = aimHeld && (viewmodel.group.visible || tps) && player.active < 2 && currentGun();
     if (viewmodel.group.visible) {
       const ctxSpeed = Math.hypot(player.vel.x, player.vel.z);
       viewmodel.update(dt, {
@@ -3012,9 +3041,31 @@ function beginBus() {
     pitchPivot.rotation.set(player.pitch + player.recoilP, player.recoilY, shakeR);
     pitchPivot.position.set(shakeX, shakeY, 0);
     rig.position.copy(player.pos);
+    // Camera boom: behind and to the right of the shoulder, pulled in by walls.
+    {
+      const want = tps ? (ads ? [0.4, 0.3, 1.9] : [0.6, 0.45, 3.3]) : [0, 0, 0];
+      let k = 1;
+      if (tps) {
+        rig.updateMatrixWorld(true);
+        eye.getWorldPosition(_camEye);
+        _camWant.set(want[0], want[1], want[2]);
+        pitchPivot.localToWorld(_camWant);
+        _camDir.copy(_camWant).sub(_camEye);
+        const len = _camDir.length() || 1;
+        _camDir.multiplyScalar(1 / len);
+        for (const box of world.boxes) {
+          const t = rayAABB(_camEye.x, _camEye.y, _camEye.z, _camDir.x, _camDir.y, _camDir.z, box, len);
+          if (t != null && t >= 0 && t < len) k = Math.min(k, Math.max(0.15, (t - 0.25) / len));
+        }
+      }
+      const tx = want[0] * k, ty = want[1] * k, tz = want[2] * k;
+      const a = 1 - Math.exp(-14 * dt);
+      camera.position.set(lerp(camera.position.x, tx, a), lerp(camera.position.y, ty, a), lerp(camera.position.z, tz, a));
+    }
     const hip = settings.fov || 78;
     const sprintFov = (Math.hypot(player.vel.x, player.vel.z) > 6.5) ? hip + 4 : hip;
-    const targetFov = ads ? 48 : player.dashCd > 0.85 ? hip + 10 : sprintFov;
+    fovKick = Math.max(0, fovKick - dt * 9);
+    const targetFov = (ads ? 48 : player.dashCd > 0.85 ? hip + 10 : sprintFov) + fovKick * 1.8;
     if (Math.abs(camera.fov - targetFov) > 0.05) {
       camera.fov = lerp(camera.fov, targetFov, 0.15);
       camera.updateProjectionMatrix();
@@ -3256,6 +3307,7 @@ function beginBus() {
     yawPivot.add(hero.group);
     hero.group.visible = false;
     heroModel = look().model || 'procedural';
+    { const g = currentGun(); const sp = g || meleeById(player.meleeId); hero.attachWeapon(createWeaponMesh(sp.id, look().wrap, look().charm)); }
   }
 
   function applyProfile() {
@@ -3263,7 +3315,7 @@ function beginBus() {
     if (hero && heroModel !== (look().model || 'procedural')) buildHero();
     if (hero) {
       hero.setLook(look());
-      hero.attachWeapon(null);
+      syncWeapon();
     }
     viewmodel.setLook({ ...look(), _weapon: player.active === 2 ? player.meleeId : (currentGun()?.id || player.meleeId) });
   }

@@ -110,7 +110,7 @@ export function createStudio(canvas, renderer, look) {
   let pulse = 0;
 
   function buildWeapon(next) {
-    waifu.attachWeapon(createWeaponMesh(next.melee || 'katana', next.wrap, next.charm));
+    waifu.attachWeapon(createWeaponMesh('ar', next.wrap, next.charm));
   }
 
   /** Reflect the current character's download state on the progress ring. */

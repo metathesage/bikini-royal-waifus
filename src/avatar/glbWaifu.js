@@ -42,6 +42,7 @@ export function createGlbWaifu(look, detail = 'full') {
   let time = 0;
   let spin = 0;
   let heldWeapon = null;
+  let shootT = 0;
   let pendingWeapon = null;
   let handBone = null;
   /** Set for one frame by match.js when this actor pulls a trigger. */
@@ -131,6 +132,28 @@ export function createGlbWaifu(look, detail = 'full') {
       // velocity. See `useClips` below for how the two are arbitrated.
       if (source.animations && source.animations.length) {
         mixer = new THREE.AnimationMixer(scene);
+        // Preferred clip per role, by exact name (UAL-style libraries first, then the
+        // Kenney-style soldier). Anything still unresolved falls through to the regexes.
+        const byName = new Map(source.animations.map((c) => [(c.name || '').toLowerCase(), c]));
+        const PICK = {
+          idle: ['pistol_idle_loop', 'pistol_idle', 'idle_loop', 'idle_a', 'idle', 'standby'],
+          walk: ['walk_loop', 'walk', 'walk_female'],
+          run: ['jog_fwd_loop', 'jog', 'run_anime', 'run_female', 'sprint_loop', 'sprint'],
+          sprint: ['sprint_loop', 'sprint', 'run_anime'],
+          crouch: ['crouch_fwd_loop', 'crouch_walk', 'crouch'],
+          crouchIdle: ['crouch_idle_loop', 'crouch_idle'],
+          jump: ['jump_loop', 'jump_air', 'jump', 'fall'],
+          die: ['death01', 'death_a', 'die'],
+          shoot: ['pistol_shoot', 'holding-right-shoot'],
+          hit: ['hit_chest'],
+          pickup: ['pickup_table', 'pick-up'],
+          back: ['walk_backwards'],
+          strafeL: ['strafe_left'],
+          strafeR: ['strafe_right'],
+        };
+        for (const [role, names] of Object.entries(PICK)) {
+          for (const nm of names) if (byName.has(nm)) { clips[role] = byName.get(nm); break; }
+        }
         for (const clip of source.animations) {
           const n = (clip.name || '').toLowerCase();
           if (!clips.idle && /(idle|stand|standby)/.test(n)) clips.idle = clip;
@@ -173,14 +196,16 @@ export function createGlbWaifu(look, detail = 'full') {
     load.error = new Error(`unknown character model: ${look?.model}`);
   }
 
-  function playClip(name, crossfade = 0.25) {
+  function playClip(name, crossfade = 0.25, once = false) {
     if (!mixer) return;
     const clip = clips[name];
     if (!clip) return;
     const next = mixer.clipAction(clip);
     if (currentAction === next) return;
     if (currentAction) currentAction.fadeOut(crossfade);
-    next.reset().fadeIn(crossfade).play();
+    next.reset();
+    if (once) { next.setLoop(THREE.LoopOnce, 1); next.clampWhenFinished = true; } else next.setLoop(THREE.LoopRepeat, Infinity);
+    next.fadeIn(crossfade).play();
     currentAction = next;
   }
 
@@ -282,9 +307,19 @@ export function createGlbWaifu(look, detail = 'full') {
     }
 
     if (mixer) {
-      if (!posing) {
-        if (speed > 5 && clips.run) playClip('run');
-        else if (speed > 0.35 && clips.walk) playClip('walk');
+      if (shootT > 0) shootT -= dt;
+      if (ctx.dead && clips.die) {
+        playClip('die', 0.1, true);
+      } else if (!posing) {
+        const grounded = ctx.grounded !== false;
+        if (!grounded && clips.jump) playClip('jump', 0.15);
+        else if (ctx.crouch && clips.crouch) playClip(speed > 0.35 ? 'crouch' : (clips.crouchIdle ? 'crouchIdle' : 'crouch'));
+        else if (ctx.mv && speed > 0.35 && ctx.mv.y < -0.5 && clips.back) playClip('back', 0.15);
+        else if (ctx.mv && speed > 0.35 && Math.abs(ctx.mv.x) > 0.7 && Math.abs(ctx.mv.y) < 0.5 && clips.strafeL && clips.strafeR) playClip(ctx.mv.x < 0 ? 'strafeL' : 'strafeR', 0.15);
+        else if (speed > 6.5 && (clips.sprint || clips.run)) playClip(clips.sprint ? 'sprint' : 'run', 0.15);
+        else if (speed > 3.2 && clips.run) playClip('run', 0.15);
+        else if (speed > 0.35 && (clips.walk || clips.run)) playClip(clips.walk ? 'walk' : 'run', 0.15);
+        else if (shootT > 0 && clips.shoot) playClip('shoot', 0.05);
         else playClip('idle');
       }
       mixer.update(dt);
@@ -324,7 +359,7 @@ export function createGlbWaifu(look, detail = 'full') {
      * be cleared inside the rig branch only, so on a clip-driven model the
      * first `fire()` latched `fireFlag` on forever and nothing read it anyway.
      */
-    if (fireFlag) { recoilT = 1; fireFlag = false; }
+    if (fireFlag) { recoilT = 1; shootT = 0.32; fireFlag = false; }
     if (hitFlag) { flinchT = 1; hitFlag = false; }
     if (recoilT > 0) recoilT = Math.max(0, recoilT - dt * 7);
     if (flinchT > 0) flinchT = Math.max(0, flinchT - dt * 5.5);
@@ -344,7 +379,7 @@ export function createGlbWaifu(look, detail = 'full') {
       if (ctx.knocked) {
         model.rotation.x = 1.05;
         model.position.y = 0.12;
-      } else if (ctx.dead) {
+      } else if (ctx.dead && !(useClips && clips.die)) {
         model.rotation.x = 1.4;
         model.position.y = 0.04;
       } else {

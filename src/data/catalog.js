@@ -1,8 +1,4 @@
 export const MODELS = [
-  { id: 'mai_maid', name: 'Mai', rarity: 'epic', animated: true, blurb: 'Maid-outfit fighter with a full clip set.' },
-  { id: 'kasumi', name: 'Kasumi', rarity: 'legendary', rigged: true, blurb: 'Tactical sailor uniform.' },
-  { id: 'scifi_waifu', name: 'Vanguard', rarity: 'epic', rigged: true, blurb: 'Sci-fi soldier.' },
-  { id: 'citlali', name: 'Citlali', rarity: 'epic', rigged: true, blurb: 'Shaman fighter.' },
   { id: 'sofia_anime', name: 'Sofia', rarity: 'mythic', animated: true, blurb: '178 clips. Bow, sword, climb, cheer -- the best-equipped fighter here.' },
   { id: 'ual1_standard', name: 'Combatant', rarity: 'epic', animated: true, blurb: '43 combat clips: pistol shoot, reload, aim, sword combos, roll.' },
   { id: 'miyazawa_fighter', name: 'Miyazawa', rarity: 'epic', animated: true, blurb: '11 lobby clips with a real weapon-change transition.' },
@@ -212,7 +208,7 @@ export const DEFAULT_LOOK = {
   title: 'Crystal Darling',
   /** Null for a hand-built locker waifu; a candidate id grants her ability. */
   candidate: null,
-  model: 'mai_maid',
+  model: 'sofia_anime',
   body: 'darling',
   face: 'doll',
   skin: '#ffd0c2',

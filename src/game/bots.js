@@ -104,7 +104,7 @@ const BOT_BURST_GAP = [0.4, 1.0];
  * animated bodies is what makes the island read as a game with people in it
  * rather than a shooting range with mannequins.
  */
-export const ANIMATED = ['mai_maid', 'kasumi', 'scifi_waifu', 'citlali', 'miyazawa_fighter', 'ual1_standard'];
+export const ANIMATED = ['sofia_anime'];
 
 /**
  * Give the roster real bodies.
