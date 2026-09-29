@@ -1653,7 +1653,8 @@ function beginBus() {
     player.recoilY += (player.recoilStep % 2 ? 1 : -1) * spec.yaw;
     player.bloom += spec.spreadAdd;
     viewmodel.punch();
-    fovKick = 1;
+    fovKick = spec.id === 'snip' ? 2 : spec.id === 'shot' ? 1.6 : 1;
+    if (getSettings().shake !== false) trauma = Math.min(1, trauma + ({ ar: 0.035, smg: 0.025, shot: 0.28, snip: 0.32, pistol: 0.07 }[spec.id] || 0.03));
     audio.sfx(spec.id === 'shot' ? 'shot' : spec.id === 'smg' ? 'smg' : spec.id === 'snip' ? 'snip' : spec.id === 'pistol' ? 'pistol' : 'ar');
     const origin = new THREE.Vector3();
     camera.getWorldPosition(origin);
@@ -1816,6 +1817,8 @@ function beginBus() {
     if ((player.ammo[spec.ammo] || 0) <= 0) return;
     player.reload = spec.reload;
     audio.sfx('reload');
+    audio.sfx('magout');
+    setTimeout(() => { if (player.reload > 0) audio.sfx('magin'); }, Math.max(200, spec.reload * 1000 - 320));
   }
 
   function finishReload() {
@@ -2141,6 +2144,7 @@ function beginBus() {
       player.hitstop = 0.05;
       rumble(220, 0.8, 0.6);
       trauma = Math.min(1, trauma + (getSettings().shake === false ? 0 : 0.45));
+      audio.sfx('kill');
       audio.sfx('elim');
     }
     emit({ type: 'feed', killer: info ? info.name : 'Storm', victim: bot.name, weapon: info && info.melee ? meleeById(player.meleeId).name : 'eliminated', knock: false, kc: '#fff', vc: bot.look.hairColor });

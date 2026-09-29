@@ -23,17 +23,18 @@ export function createAudio(getSettings) {
     return fileCache.get(url);
   }
 
-  function playFile(url, vol = 1) {
+  function playFile(url, vol = 1, rate = 1, delay = 0) {
     if (!ctx) return;
     fileBuffer(url).then((buf) => {
       if (!buf || !ctx) return;
       const src = ctx.createBufferSource();
       src.buffer = buf;
+      src.playbackRate.value = rate;
       const g = ctx.createGain();
       g.gain.value = vol;
       src.connect(g);
       g.connect(master);
-      src.start();
+      src.start(ctx.currentTime + delay);
     });
   }
 
@@ -95,6 +96,66 @@ export function createAudio(getSettings) {
     filter.connect(g);
     g.connect(master);
     src.start(t);
+  }
+
+  /** Pitch-dropping sine: the chest-thump under a gunshot. */
+  function boom(f0, f1, dur, peak, delay = 0) {
+    if (!ctx) return;
+    const t = ctx.currentTime + delay;
+    const o = ctx.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    const g = envGain(t, 0.004, dur, peak);
+    o.connect(g);
+    g.connect(master);
+    o.start(t);
+    o.stop(t + dur + 0.05);
+  }
+
+  /** Band-limited noise burst with its own filter sweep: crack and tail. */
+  function noiseBand(dur, peak, type, f0, f1, delay = 0) {
+    if (!ctx) return;
+    const t = ctx.currentTime + delay;
+    const n = Math.floor(ctx.sampleRate * dur);
+    const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) data[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const f = ctx.createBiquadFilter();
+    f.type = type;
+    f.frequency.setValueAtTime(f0, t);
+    f.frequency.exponentialRampToValueAtTime(Math.max(60, f1), t + dur);
+    const g = envGain(t, 0.002, dur, peak);
+    src.connect(f);
+    f.connect(g);
+    g.connect(master);
+    src.start(t);
+  }
+
+  /** Per-weapon shot: sample body (re-pitched) + thump + crack + tail (+ echo). */
+  const SHOTS = {
+    ar:     { rate: 0.86, vol: 0.5, boom: [180, 48, 0.16, 0.16], crack: [0.05, 0.3, 2400], tail: [0.26, 0.09, 3200, 500], echo: 0 },
+    smg:    { rate: 1.32, vol: 0.42, boom: [240, 80, 0.09, 0.11], crack: [0.035, 0.26, 3200], tail: [0.14, 0.06, 4000, 900], echo: 0 },
+    shot:   { rate: 0.6, vol: 0.85, boom: [130, 30, 0.34, 0.3], crack: [0.09, 0.42, 1500], tail: [0.5, 0.16, 2600, 260], echo: 0.09 },
+    snip:   { rate: 0.5, vol: 0.9, boom: [110, 26, 0.42, 0.34], crack: [0.13, 0.5, 1100], tail: [1.0, 0.18, 2200, 180], echo: 0.22 },
+    pistol: { rate: 1.0, vol: 0.55, boom: [210, 62, 0.12, 0.13], crack: [0.05, 0.3, 2000], tail: [0.2, 0.07, 3000, 600], echo: 0 },
+  };
+
+  function gunshot(kind) {
+    const c = SHOTS[kind];
+    if (!c) return;
+    const jitter = 0.94 + Math.random() * 0.12;
+    const url = pickOne(GUN_FIRE);
+    playFile(url, c.vol, c.rate * jitter);
+    boom(c.boom[0] * jitter, c.boom[1], c.boom[2], c.boom[3]);
+    noiseBand(c.crack[0], c.crack[1], 'highpass', c.crack[2], c.crack[2] * 0.6);
+    noiseBand(c.tail[0], c.tail[1], 'lowpass', c.tail[2], c.tail[3], 0.012);
+    if (c.echo) {
+      playFile(url, c.vol * 0.28, c.rate * 0.9, c.echo);
+      noiseBand(c.tail[0], c.tail[1] * 0.5, 'lowpass', c.tail[2] * 0.6, c.tail[3], c.echo);
+    }
   }
 
   const VOICE_FILES = {
@@ -173,9 +234,8 @@ export function createAudio(getSettings) {
     if (!ctx) return;
     if (ctx.state === 'suspended') ctx.resume();
     apply();
-    if (GUN_FILES[name]) {
-      playFileOr(GUN_FILES[name], name === 'shot' || name === 'snip' ? 0.85 : 0.65, guns[name]);
-      return;
+    if (SHOTS[name]) {
+      if (fileCache.has(GUN_FIRE[0]) || true) { gunshot(name); return; }
     }
     switch (name) {
       case 'ui': tone(880, 0.06, 'sine', 0.06); tone(1320, 0.08, 'triangle', 0.04); break;
@@ -189,8 +249,11 @@ export function createAudio(getSettings) {
         break;
       case 'equip': playFileOr(GUN_EQUIP, 0.55, () => tone(880, 0.05, 'sine', 0.04)); break;
       case 'aim': playFileOr(GUN_AIM, 0.35, () => {}); break;
-      case 'hit': tone(1400, 0.04, 'square', 0.04); break;
-      case 'head': tone(1760, 0.06, 'square', 0.06); tone(990, 0.05, 'sine', 0.04); break;
+      case 'hit': tone(1500, 0.035, 'square', 0.05); boom(320, 120, 0.05, 0.07); noiseBand(0.03, 0.08, 'bandpass', 3000, 2000); break;
+      case 'head': tone(2093, 0.14, 'triangle', 0.09); tone(3136, 0.1, 'sine', 0.05); boom(400, 140, 0.06, 0.08); noiseBand(0.03, 0.1, 'highpass', 5000, 3500); break;
+      case 'kill': tone(1568, 0.16, 'triangle', 0.09); setTimeout(() => tone(2093, 0.22, 'triangle', 0.09), 70); boom(260, 60, 0.18, 0.14); break;
+      case 'magout': noiseBand(0.05, 0.16, 'bandpass', 1800, 900); boom(300, 120, 0.05, 0.08); break;
+      case 'magin': noiseBand(0.06, 0.2, 'bandpass', 1400, 700); boom(200, 70, 0.09, 0.14); setTimeout(() => noiseBand(0.04, 0.18, 'highpass', 2500, 1800), 90); break;
       case 'hurt': noise(0.08, 0.1, 300); voice('hurt'); break;
       case 'elim': voice('elim'); break;
       case 'knock': tone(300, 0.2, 'sine', 0.08); voice('hurt'); break;
