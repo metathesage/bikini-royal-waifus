@@ -1,4 +1,4 @@
-import { DEFAULT_LOOK, DEFAULT_SETTINGS } from '../data/catalog.js';
+import { DEFAULT_LOOK, DEFAULT_SETTINGS, MODELS } from '../data/catalog.js';
 
 const KEY = 'bikini-royal-waifus-v1';
 
@@ -66,6 +66,9 @@ export function loadSave() {
   let raw = null;
   try { raw = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch { raw = null; }
   const look = merge(DEFAULT_LOOK, raw?.look);
+  // A saved look can name a model that no longer ships (or never animated). Fall back to the default.
+  if (!look.model || (look.model !== 'procedural' && !MODELS.some((m) => m.id === look.model) && !String(look.model).startsWith('character_'))) look.model = DEFAULT_LOOK.model;
+  if (look.model === 'procedural') look.model = DEFAULT_LOOK.model;
   const settings = merge(DEFAULT_SETTINGS, raw?.settings);
   let presets = Array.isArray(raw?.presets) ? raw.presets.slice(0, 4) : [null, null, null, null];
   while (presets.length < 4) presets.push(null);

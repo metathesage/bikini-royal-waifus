@@ -140,6 +140,8 @@ export function createGlbWaifu(look, detail = 'full') {
           idleArmed: ['pistol_idle_loop', 'pistol_idle'],
           aim: ['pistol_aim_neutral'],
           glide: ['glide', 'flying_forward'],
+          emote: ['dance_simple', 'dance_charleston', 'cheering_two_hands', 'greeting'],
+          victory: ['victory', 'victory_fist_pump', 'cheering_two_hands'],
           reload: ['pistol_reload'],
           walk: ['walk_loop', 'walk', 'walk_female'],
           run: ['jog_fwd_loop', 'jog', 'run_anime', 'run_female', 'sprint_loop', 'sprint'],
@@ -314,6 +316,12 @@ export function createGlbWaifu(look, detail = 'full') {
       if (shootT > 0) shootT -= dt;
       if (ctx.dead && clips.die) {
         playClip('die', 0.1, true);
+      } else if (posing && (clips.emote || clips.victory)) {
+        // Emotes and the victory pose play a real clip; anything else falls back to idle.
+        const win = /vict|spark|win/i.test(pose) && clips.victory;
+        playClip(win ? 'victory' : (clips.emote ? 'emote' : 'idle'), 0.2);
+      } else if (posing) {
+        playClip('idle');
       } else if (ctx.gliding && clips.glide) {
         playClip('glide', 0.2);
       } else if (!posing) {
@@ -331,6 +339,7 @@ export function createGlbWaifu(look, detail = 'full') {
         else if (ctx.armed && clips.idleArmed) playClip('idleArmed', 0.2);
         else playClip('idle');
       }
+      if (!currentAction && clips.idle) playClip('idle', 0);
       mixer.update(dt);
     } else if (model) {
       // Static imports (no clips) get a hand-authored idle: a slow breathing

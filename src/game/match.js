@@ -2909,8 +2909,9 @@ function beginBus() {
   }
 
   function startEmote() {
+    // Plays in the normal third-person view. It used to flip `inspect` on and never off,
+    // which locked the player in the orbit camera with no controls.
     emoteT = 2.4;
-    inspect = true;
     audio.sfx('emote');
   }
 
@@ -3017,7 +3018,7 @@ function beginBus() {
 
   /** Over-the-shoulder third person while the player is alive and playing. */
   function tpsActive() {
-    return (clock.phase === 'play' || clock.phase === 'lobby' || clock.phase === 'bus') && player.alive && !inspect && emoteT <= 0 && !world.isGraybox;
+    return (clock.phase === 'play' || clock.phase === 'lobby' || clock.phase === 'bus') && player.alive && !inspect && !world.isGraybox;
   }
   let fovKick = 0;
   const _camWant = new THREE.Vector3();
@@ -3080,7 +3081,7 @@ function beginBus() {
       camera.fov = lerp(camera.fov, targetFov, 0.15);
       camera.updateProjectionMatrix();
     }
-    const third = inspect || emoteT > 0 || clock.phase === 'end' || (!player.alive && clock.phase === 'end');
+    const third = inspect || clock.phase === 'end' || (!player.alive && clock.phase === 'end');
     if (third || (!player.alive && clock.phase === 'play')) {
       if (input && (inspect || clock.phase === 'end')) {
         orbit.theta -= input.lookX * 1.2;
@@ -3280,7 +3281,7 @@ function beginBus() {
       revived: player.revived,
       time: clock.match,
     };
-    snap.inspect = inspect || emoteT > 0 || clock.phase === 'end';
+    snap.inspect = inspect || clock.phase === 'end';
     snap.melee = player.active === 2;
     snap.ability = abilityState();
     if (inputItemCycle.pending) {
@@ -3308,12 +3309,12 @@ function beginBus() {
 
   function activeCamera() {
     if (!built) return camera;
-    if (inspect || emoteT > 0 || clock.phase === 'end' || (!player.alive && clock.phase !== 'lobby' && clock.phase !== 'bus')) return cine;
+    if (inspect || clock.phase === 'end' || (!player.alive && clock.phase !== 'lobby' && clock.phase !== 'bus')) return cine;
     return camera;
   }
 
   function setCaptureWanted() {
-    return inspect || emoteT > 0 || clock.phase === 'end';
+    return inspect || clock.phase === 'end';
   }
 
   function buildHero() {

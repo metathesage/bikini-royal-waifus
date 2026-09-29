@@ -913,3 +913,14 @@ function rendererCheck() {
   if (!gun.taken) throw new Error('standing 1.2 m from a gun and pressing interact did not pick it up');
   console.log('pickup: gun taken from 1.2 m in third person');
 }
+
+/* --- An emote must end: D-pad left used to lock the player in inspect mode -- */
+{
+  const before = match.snapshot().inspect;
+  const e = { ...input, moveX: 0, moveY: 0, lookX: 0, fire: false, emotePressed: true };
+  match.update(1 / 30, e);
+  const rest = { ...input, moveX: 0, moveY: 0, lookX: 0, fire: false, emotePressed: false };
+  for (let i = 0; i < 120; i++) match.update(1 / 30, rest);
+  if (match.snapshot().inspect && !before) throw new Error('an emote left the player stuck in inspect mode');
+  console.log('emote: ends cleanly, no inspect lock');
+}
