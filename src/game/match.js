@@ -25,15 +25,15 @@ const RANGE_RESPAWN = 0.9;
 /** How long the HUD holds a "target down" callout. */
 const RANGE_CALLOUT = 1.1;
 const ZONE_PLAN = [
-  { wait: 55, shrink: 45, to: 46 },
-  { wait: 40, shrink: 40, to: 32 },
-  { wait: 35, shrink: 35, to: 21 },
-  { wait: 30, shrink: 30, to: 12 },
-  { wait: 25, shrink: 25, to: 0 },
+  { wait: 25, shrink: 35, to: 42 },
+  { wait: 30, shrink: 30, to: 28 },
+  { wait: 25, shrink: 25, to: 17 },
+  { wait: 20, shrink: 20, to: 8 },
+  { wait: 15, shrink: 20, to: 0 },
 ];
-const ZONE_DPS = [1, 2, 5, 9, 16];
-const LOBBY_TIME = 18;
-const BUS_TIME = 42;
+const ZONE_DPS = [2, 4, 8, 12, 20];
+const LOBBY_TIME = 5;
+const BUS_TIME = 15;
 /**
  * Hold on the ship, all together, while this counts down before the route runs.
  *
@@ -69,7 +69,7 @@ function mulberry(seed) {
   };
 }
 
-export function createMatch({ getSettings, audio, getLook, renderer = null, map = 'island' }) {
+export function createMatch({ getSettings, audio, getLook, renderer = null, map = 'sakura' }) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(78, 1, 0.08, 480);
   const cine = new THREE.PerspectiveCamera(42, 1, 0.1, 480);
@@ -111,7 +111,7 @@ export function createMatch({ getSettings, audio, getLook, renderer = null, map 
   let buildIndex = 0;
   const events = [];
   let abstractT = 2;
-  let dropT = 70;
+  let dropT = 40;
   let prevFire = false;
   let prevSlot = 0;
 
@@ -257,11 +257,12 @@ export function createMatch({ getSettings, audio, getLook, renderer = null, map 
     abilityLockSay: 0,
     mantle: null,
     gliding: false,
-    guns: [null, null],
+    // Matches reset(): land with a sidearm and two mags.
+    guns: [{ id: 'pistol', mag: GUNS.pistol.mag }, null],
     gunIndex: 0,
-    active: 2,
+    active: 0,
     meleeId: 'katana',
-    ammo: { light: 0, medium: 0, heavy: 0, shells: 0 },
+    ammo: { light: GUNS.pistol.mag * 2, medium: 0, heavy: 0, shells: 0 },
     inv: createInventory(),
     itemIndex: 0,
     channel: null,
@@ -288,7 +289,7 @@ export function createMatch({ getSettings, audio, getLook, renderer = null, map 
    * match of a session is built without a reset, so any drift here means the
    * opening circle is a different size from every later one.
    */
-  const zone = { x: 6, z: -4, r: 125, from: 125, phase: 0, mode: 'wait', left: ZONE_PLAN[0].wait, dps: 0 };
+  const zone = { x: 6, z: -4, r: 62, from: 62, phase: 0, mode: 'wait', left: ZONE_PLAN[0].wait, dps: 0 };
   const clock = { phase: 'boot', lobby: LOBBY_TIME, intro: 0, lastCount: 0, bus: 0, match: 0, end: null };
 /** Seconds since the drop ship started leaving; negative while it is still docked. */
 let ufoDepart = -1;
@@ -558,8 +559,8 @@ let ufoDepart = -1;
       else if (a.ammo) addPickup('ammo', a.ammo, a.x, a.y, a.z);
       else {
         const roll = rng();
-        if (roll < 0.45) addPickup('gun', rollGun(rng), a.x, a.y, a.z);
-        else if (roll < 0.7) addPickup('ammo', rollAmmoType(rng), a.x, a.y, a.z);
+        if (roll < 0.65) addPickup('gun', rollGun(rng), a.x, a.y, a.z);
+        else if (roll < 0.85) addPickup('ammo', rollAmmoType(rng), a.x, a.y, a.z);
         else addPickup('item', PICK_HEALS[Math.floor(rng() * PICK_HEALS.length)], a.x, a.y, a.z);
       }
     }
@@ -665,11 +666,13 @@ let ufoDepart = -1;
 
   function reset() {
     if (!built) return;
-    player.guns = [null, null];
+    // Land armed: a sidearm and two mags, so the first fight can start at once.
+    player.guns = [{ id: 'pistol', mag: GUNS.pistol.mag }, null];
     player.gunIndex = 0;
-    player.active = 2;
+    player.active = 0;
     player.meleeId = look().melee || 'katana';
     player.ammo = { light: 0, medium: 0, heavy: 0, shells: 0 };
+    player.ammo[GUNS.pistol.ammo] += GUNS.pistol.mag * 2;
     resetInventory(player.inv);
     player.channel = null;
     player.kills = 0;
@@ -687,7 +690,7 @@ let ufoDepart = -1;
     player.bloom = 0;
     grenades = [];
     falling = [];
-    for (const s of supply) scene.remove(s.mesh);
+    for (const s of supply) { scene.remove(s.mesh); if (s.beam) scene.remove(s.beam); }
     supply = [];
     for (const p of pickups) {
       if (p.fromChest || p.fromDrop) {
@@ -714,9 +717,9 @@ let ufoDepart = -1;
       b.avatar.group.visible = false;
       if (b.avatar.group.parent !== scene) scene.attach(b.avatar.group);
     }
-    zone.x = 6; zone.z = -4; zone.r = 125; zone.from = 125;
+    zone.x = 6; zone.z = -4; zone.r = 62; zone.from = 62;
     zone.phase = 0; zone.mode = 'wait'; zone.left = ZONE_PLAN[0].wait; zone.dps = 0;
-    dropT = 75;
+    dropT = 40;
     abstractT = 2;
     // Restarting a range session means re-arming and standing the dummies back
     // up, not a new drop. placeLobby would put the player on a lobby deck at
@@ -1252,7 +1255,7 @@ function beginBus() {
     abstractT -= dt;
     if (abstractT <= 0) { abstractT = 2.4; abstractFight(); }
     dropT -= dt;
-    if (dropT <= 0) { dropT = 78; callSupply(); }
+    if (dropT <= 0) { dropT = 60; callSupply(); }
     checkEnd();
   }
 
@@ -1738,6 +1741,7 @@ function beginBus() {
       emit({ type: 'hit', head });
       trauma = Math.min(1, trauma + 0.04);
       player.hitstop = 0.015;
+      rumble(head ? 90 : 50, head ? 0.35 : 0.1, 0.4);
       audio.sfx(head ? 'head' : 'hit');
       if (settings.shake !== false) trauma = Math.min(1, trauma + 0.12);
     } else if (world.isGraybox) {
@@ -2116,6 +2120,7 @@ function beginBus() {
     if (info && info.byPlayer) {
       player.kills++;
       player.hitstop = 0.05;
+      rumble(220, 0.8, 0.6);
       trauma = Math.min(1, trauma + (getSettings().shake === false ? 0 : 0.45));
       audio.sfx('elim');
     }
@@ -2167,7 +2172,7 @@ function beginBus() {
     if (left > 0) {
       if (player.knocked) player.knockHp -= left;
       else player.hp -= left;
-      if (!info.quiet) audio.sfx('hurt');
+      if (!info.quiet) { audio.sfx('hurt'); rumble(140, 0.6, 0.3); }
     }
     if (!info.quiet) trauma = Math.min(1, trauma + (getSettings().shake === false ? 0 : 0.28));
 
@@ -2780,8 +2785,25 @@ function beginBus() {
     trauma = Math.min(1, trauma + 0.5);
   }
 
+  /** Controller rumble; silently does nothing without a pad or actuator. */
+  function rumble(duration, strong, weak) {
+    try {
+      const gp = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(Boolean);
+      const act = gp && gp.vibrationActuator;
+      if (act && act.playEffect) act.playEffect('dual-rumble', { duration, strongMagnitude: strong, weakMagnitude: weak }).catch(() => {});
+    } catch { /* no pad, no rumble */ }
+  }
+
   function callSupply() {
-    const spot = world.anchors.drops[Math.floor(Math.random() * world.anchors.drops.length)];
+    let spot = world.anchors.drops[Math.floor(Math.random() * world.anchors.drops.length)];
+    // Maps that ship no fixed drop points get one on dry ground inside the storm circle.
+    for (let i = 0; !spot && i < 40; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.sqrt(Math.random()) * zone.r * 0.85;
+      const x = zone.x + Math.cos(a) * r, z = zone.z + Math.sin(a) * r;
+      if (heightAt(x, z) > SEA_Y + 0.6) spot = { x, z };
+    }
+    if (!spot) return;
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(1.1, 0.7, 1.1),
       new THREE.MeshStandardMaterial({ color: 0xffe566, emissive: 0xffb020, emissiveIntensity: 0.6 }),
@@ -2795,7 +2817,13 @@ function beginBus() {
       shell.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
       mesh.add(shell);
     }).catch((e) => console.error('supply crate failed', e));
-    supply.push({ x: spot.x, y: 75, z: spot.z, mesh, landed: false, opened: false });
+    const beam = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.6, 0.6, 90, 10, 1, true),
+      new THREE.MeshBasicMaterial({ color: 0xffd35a, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
+    );
+    beam.position.set(spot.x, heightAt(spot.x, spot.z) + 45, spot.z);
+    scene.add(beam);
+    supply.push({ x: spot.x, y: 75, z: spot.z, mesh, beam, landed: false, opened: false });
     emit({ type: 'toast', text: 'Supply drop inbound' });
   }
 
@@ -2808,12 +2836,15 @@ function beginBus() {
         s.mesh.position.y = s.y;
         s.mesh.rotation.y += dt;
       }
+      if (s.beam && !s.opened) s.beam.material.opacity = 0.28 + Math.sin(performance.now() * 0.004) * 0.1;
     }
   }
 
   function openSupply(s) {
     if (s.opened) return;
     s.opened = true;
+    if (s.beam) { scene.remove(s.beam); s.beam.geometry.dispose(); s.beam.material.dispose(); s.beam = null; }
+    rumble(180, 0.3, 0.5);
     s.mesh.material.color.set(0x7dfff0);
     addMarked('gun', Math.random() < 0.5 ? 'snip' : 'ar', s.x + 0.4, s.y, s.z);
     addMarked('item', 'aegis', s.x - 0.4, s.y, s.z);

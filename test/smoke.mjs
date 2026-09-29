@@ -31,7 +31,7 @@ const look = {
 };
 const settings = { mouse: 0.002, gamepad: 2, fov: 78, invert: false, volume: 0, music: 0, jiggle: 1, assist: true, shake: false, text: 1, touch: false, bindings: {} };
 const audio = { sfx() {}, setMusicDuck() {}, apply() {} };
-const match = createMatch({ getSettings: () => settings, audio, getLook: () => look });
+const match = createMatch({ getSettings: () => settings, audio, getLook: () => look, map: 'island' });
 
 // The bot roster and the player locker both read the generated asset manifest,
 // which the browser fetches and node cannot. Seed it from disk so both paths run.
@@ -192,7 +192,7 @@ setAssetManifest(JSON.parse(readFileSync(
   if (added !== roster.length) throw new Error(`locker took ${added}/${roster.length} rigged characters`);
 
   const bots = createRoster('Yuna');
-  if (bots.length !== 43) throw new Error(`expected 43 bots, got ${bots.length}`);
+  if (bots.length !== 21) throw new Error(`expected 21 bots, got ${bots.length}`);
   await assignBotModels(bots);
 
   /**

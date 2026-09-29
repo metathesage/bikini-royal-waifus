@@ -983,50 +983,42 @@ function buildBridges(B) {
  * ------------------------------------------------------------------ */
 function buildUfo() {
   const group = new THREE.Group();
-  const hull = new THREE.Mesh(new THREE.CylinderGeometry(5, 3.4, 2.2, 12), massMat(C.massAlt));
-  hull.position.y = -0.6;
+  const black = new THREE.MeshToonMaterial({ color: '#0d0a12', gradientMap: toonRamp(), emissive: '#1a0f24', emissiveIntensity: 1 });
+  const body = new THREE.CylinderGeometry(4.6, 17, 13, 4, 1).rotateY(Math.PI / 4);
+  const hull = new THREE.Mesh(body, black);
+  hull.position.y = -6.6;
   hull.castShadow = true;
   group.add(hull);
-  const dome = new THREE.Mesh(new THREE.SphereGeometry(3, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), massMat(C.dark));
-  dome.position.y = 0.5;
-  group.add(dome);
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(4.4, 0.18, 6, 20), glowMat(0x9fe8ff));
-  ring.rotation.x = Math.PI / 2;
-  ring.position.y = 0.1;
-  group.add(ring);
-
-  const beam = new THREE.Mesh(
-    new THREE.ConeGeometry(3, 16, 12, 1, true),
-    new THREE.MeshBasicMaterial({ color: 0xb7f6ff, transparent: true, opacity: 0.16, side: THREE.DoubleSide, depthWrite: false }),
-  );
-  beam.position.y = -9;
-  group.add(beam);
-
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(body), new THREE.LineBasicMaterial({ color: '#c9a2ff', fog: false }));
+  hull.add(edges);
+  // Crown deck the riders stand on.
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(6.4, 0.3, 6.4), new THREE.MeshToonMaterial({ color: '#1c1526', gradientMap: toonRamp() }));
+  deck.position.y = 0.02;
+  group.add(deck);
+  // Glowing seam rings and a slow-pulsing underside core.
+  const glow = new THREE.MeshBasicMaterial({ color: '#b98cff', fog: false });
+  for (let i = 1; i <= 3; i++) {
+    const w = 4.6 + (17 - 4.6) * (i / 4);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(w * 0.72, 0.08, 3, 4), glow);
+    ring.rotation.set(Math.PI / 2, 0, 0);
+    ring.position.y = -13 * (i / 4);
+    group.add(ring);
+  }
+  const core = new THREE.Mesh(new THREE.OctahedronGeometry(1.6, 0), new THREE.MeshBasicMaterial({ color: '#e7d4ff', fog: false }));
+  core.position.y = -14.2;
+  group.add(core);
+  core.onBeforeRender = () => {
+    const t = performance.now() / 1000;
+    core.rotation.y = t;
+    core.scale.setScalar(1 + Math.sin(t * 3) * 0.12);
+  };
   const seats = [];
-  for (let i = 0; i < 6; i++) {
-    const a = (i / 6) * Math.PI * 2;
-    seats.push({ x: Math.cos(a) * 2.6, y: 0.2, z: Math.sin(a) * 2.6, yaw: -a + Math.PI });
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    seats.push({ x: Math.cos(a) * 2.4, y: 0.2, z: Math.sin(a) * 2.4, yaw: -a + Math.PI });
   }
   group.position.set(0, 70, 0);
-  return {
-    group, beam, seats,
-    /**
-     * Radius of the solid hull, in metres.
-     *
-     * match.js reads this to put the player *beside* the ship on the drop
-     * rather than under it. Standing on the deck put the first-person camera
-     * inside the hull, so the drop opened on a black screen.
-     */
-    hullR: 5,
-    /**
-     * The pieces that roof the player in while they are aboard.
-     *
-     * Hidden for the duration of the bus phase. A canopy directly overhead is
-     * correct as art and wrong as a play space: from the deck the camera is
-     * inside it, and it shadows the deck to black.
-     */
-    roof: [dome],
-  };
+  return { group, beam: null, seats, hullR: 8, roof: [] };
 }
 
 /**
@@ -1036,31 +1028,34 @@ function buildUfo() {
  * so the player has a floor to stand on during the lobby, and a missing one
  * drops them through the map before the match has even started.
  */
-function buildLobby(boxes) {
-  const group = new THREE.Group();
-  const D = 18;
-  const Y = 46;
-  const deck = new THREE.Mesh(new THREE.BoxGeometry(D, 0.6, D), massMat(C.massAlt));
-  deck.position.set(0, Y, 0);
-  deck.receiveShadow = true;
-  group.add(deck);
-  for (const [dx, dz, ry] of [[0, -D / 2, 0], [0, D / 2, 0], [-D / 2, 0, Math.PI / 2], [D / 2, 0, Math.PI / 2]]) {
-    const rail = new THREE.Mesh(new THREE.BoxGeometry(D, 0.3, 0.3), massMat(C.dark));
-    rail.position.set(dx, Y + 0.9, dz);
-    rail.rotation.y = ry;
-    group.add(rail);
-    for (let i = -2; i <= 2; i++) {
-      const post = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.1, 0.3), massMat(C.dark));
-      const off = i * (D / 5);
-      post.position.set(dx + (ry ? 0 : off), Y + 0.5, dz + (ry ? off : 0));
-      group.add(post);
-    }
+function buildLobby() {
+  const g = new THREE.Group();
+  const T = (c, e, i) => new THREE.MeshToonMaterial({ color: c, gradientMap: toonRamp(), emissive: e || '#000', emissiveIntensity: i || 0 });
+  const put = (geo, mat, x, y, z, sx = 1, sy = 1, sz = 1, ry = 0) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z); m.scale.set(sx, sy, sz); m.rotation.y = ry;
+    m.castShadow = m.receiveShadow = true;
+    g.add(m);
+    return m;
+  };
+  // Island: grass lip, raked sand, rocky underside.
+  put(new THREE.CylinderGeometry(8, 8.6, 0.6, 9), T('#8fd46a'), 0, -0.3, 0);
+  put(new THREE.CylinderGeometry(6.2, 6.2, 0.1, 9), T('#f4e6cf'), 0, 0.02, 0);
+  for (let r = 1.6; r < 6; r += 0.8) {
+    put(new THREE.TorusGeometry(r, 0.04, 3, 36), T('#dcc8a8'), 0, 0.08, 0).rotation.x = Math.PI / 2;
   }
-  const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.6, 10, 8), glowMat(0x9fe8ff));
-  beacon.position.set(0, Y + 2.2, 0);
-  group.add(beacon);
-  group.userData.box = makeBox(0, Y - 0.3, 0, D, 0.6, D, 'lobby');
-  return group;
+  put(new THREE.ConeGeometry(8.4, 9, 7), T('#b77a5a'), 0, -5.1, 0, 1, 1, 1, 0.3).rotation.x = Math.PI;
+  // Rocks, a lantern, one sakura.
+  for (const [x, z, s] of [[2.2, 1.4, 1.1], [-2.6, -1.6, 0.8], [-1.2, 2.8, 0.6]]) put(new THREE.DodecahedronGeometry(s, 0), T('#6f6a78'), x, s * 0.4, z);
+  put(new THREE.BoxGeometry(0.4, 1.2, 0.4), T('#b9a9c6'), 5, 0.6, -3.5);
+  put(new THREE.BoxGeometry(0.7, 0.5, 0.7), T('#fff0d0', '#ffb86a', 1.2), 5, 1.45, -3.5);
+  put(new THREE.CylinderGeometry(0.25, 0.4, 2.8, 5), T('#6b3b3b'), -5, 1.4, 3.6);
+  for (const [dx, dy, dz, s] of [[0, 3.2, 0, 1.8], [0.9, 2.8, 0.5, 1.3], [-0.8, 3, -0.4, 1.4]]) {
+    put(new THREE.IcosahedronGeometry(1, 0), T('#ffb3d4', '#ff9cc6', 0.12), -5 + dx, dy, 3.6 + dz, s * 1.2, s * 0.85, s * 1.2);
+  }
+  g.position.set(0, 48, 0);
+  g.userData.box = makeBox(0, 48 - 0.3, 0, 14, 0.6, 14, 'lobby');
+  return g;
 }
 
 /**
@@ -1267,7 +1262,7 @@ export function buildSakuraIsle(scene, seed = 7, renderer = null) {
 
   const ufo = buildUfo();
   scene.add(ufo.group);
-  const lobby = buildLobby(boxes);
+  const lobby = buildLobby();
   scene.add(lobby);
 
   return {

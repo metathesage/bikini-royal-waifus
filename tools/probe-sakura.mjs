@@ -77,7 +77,7 @@ const check = (ok, msg) => { if (!ok) fail.push(msg); return ok; };
 
 /* --- 1. Contract match.js relies on --------------------------------- */
 check(world.boxes.length > 150, `only ${world.boxes.length} collision boxes`);
-check(world.ufo && world.ufo.seats.length === 6, 'drop ship needs 6 seats');
+check(world.ufo && world.ufo.seats.length === 8, 'drop ship needs 8 seats');
 check(world.lobby && world.lobby.userData.box, 'lobby deck needs a collision box');
 check(world.progress() === 1, 'a map with no assets must report full progress');
 check(!world.noZone, 'this map has a storm, so noZone must be falsy');

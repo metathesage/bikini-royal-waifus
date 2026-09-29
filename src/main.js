@@ -295,8 +295,8 @@ function back() {
 function currentMap() {
   const p = new URLSearchParams(location.search).get('map');
   if (p === 'graybox' || p === 'range') return 'graybox';
-  if (p === 'sakura') return 'sakura';
-  return 'island';
+  if (p === 'island' || p === 'classic') return 'island';
+  return 'sakura';
 }
 
 function startMatch() {

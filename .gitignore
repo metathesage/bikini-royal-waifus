@@ -78,8 +78,8 @@ he_rig.txt
 
 # 1.3 GB of art source, unrelated to running the game. The shipped, runtime
 # assets under public/ are what matter and they ARE tracked.
-character design/
-weapons/
+/character design/
+/weapons/
 
 # The Japanese environment library: 430 MB of source art, of which the game
 # loads an 87 MB curated subset that IS tracked (public/assets/env/). The rest
