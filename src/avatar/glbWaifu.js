@@ -3,6 +3,27 @@ import {
   CHARACTERS, PSX_BY_ID, loadGltf, loadPsxCharacter, normalizeScene, instanceOf, watchAsset,
 } from '../data/assets.js';
 import { createRig } from './rig.js';
+import { addJiggle } from './jiggle.js';
+import { retargetClips, vrmRetargetSetup } from './retarget.js';
+import { loadVrmFull, vrmBoneNames } from './vrm.js';
+
+const TOON_RAMP = (() => {
+  const d = new Uint8Array([90, 160, 220, 255]);
+  const t = new THREE.DataTexture(d, d.length, 1, THREE.RedFormat);
+  t.minFilter = THREE.NearestFilter; t.magFilter = THREE.NearestFilter; t.generateMipmaps = false; t.needsUpdate = true;
+  return t;
+})();
+function toToon(scene) {
+  scene.traverse((o) => {
+    if (!o.isMesh || !o.material) return;
+    const conv = (m) => {
+      const t = new THREE.MeshToonMaterial({ map: m.map || null, color: m.color ? m.color.clone() : new THREE.Color(0xffffff), gradientMap: TOON_RAMP, transparent: m.transparent, opacity: m.opacity, side: m.side, alphaTest: m.alphaTest || 0 });
+      t.emissive.set(0x1a1216);
+      return t;
+    };
+    o.material = Array.isArray(o.material) ? o.material.map(conv) : conv(o.material);
+  });
+}
 
 /** Characters are normalized to this height so GLB and procedural bodies share one frame. */
 const CHAR_HEIGHT = 1.7;
@@ -43,6 +64,8 @@ export function createGlbWaifu(look, detail = 'full') {
   let spin = 0;
   let heldWeapon = null;
   let shootT = 0;
+  let jiggler = null;
+  let vrmObj = null;
   let pendingWeapon = null;
   let handBone = null;
   /** Set for one frame by match.js when this actor pulls a trigger. */
@@ -79,7 +102,8 @@ export function createGlbWaifu(look, detail = 'full') {
 
   // The PSX roster is FBX + external albedo; the locker heroes are plain GLB.
   const entry = PSX_BY_ID[look?.model];
-  const url = (entry || CHARACTERS[look?.model] || {}).url;
+  const spec = CHARACTERS[look?.model] || {};
+  const url = (entry || spec).url;
   if (url) {
     // Subscribe before kicking off the load so a cached-but-still-loading
     // 117 MB model reports progress instead of going quiet.
@@ -92,12 +116,21 @@ export function createGlbWaifu(look, detail = 'full') {
     // whole gltf, because a few of them ship real animation clips we want.
     const fetchModel = entry
       ? loadPsxCharacter(entry).then((scene) => ({ scene, animations: null }))
-      : loadGltf(url).then((gltf) => ({ scene: gltf.scene, animations: gltf.animations }));
+      : spec.vrm && full
+        // The player and the menu get the real VRM: spring bones for hair, skirt and bust.
+        ? Promise.all([loadVrmFull(url), loadGltf('/assets/anims/ual.glb')]).then(([{ vrm }, anim]) => ({
+          scene: vrm.scene, vrm, animations: [], animSrc: anim, nameOf: (b) => { const n = vrm.humanoid.getRawBoneNode(b); return n ? n.name : null; },
+        }))
+        : spec.vrm
+          ? Promise.all([loadGltf(url), loadGltf('/assets/anims/ual.glb')]).then(([gltf, anim]) => ({ scene: gltf.scene, animations: [], animSrc: anim, nameOf: vrmBoneNames(gltf) }))
+          : spec.retarget
+            ? Promise.all([loadGltf(url), loadGltf('/assets/anims/ual.glb')]).then(([gltf, anim]) => ({ scene: gltf.scene, animations: [], animSrc: anim }))
+            : loadGltf(url).then((gltf) => ({ scene: gltf.scene, animations: gltf.animations }));
     fetchModel.then((source) => {
       // Never add the cached scene itself: the registry hands the same node to
       // every subscriber, so a second actor on the same model would re-parent it
       // away and both characters would vanish.
-      const scene = instanceOf(source.scene);
+      const scene = source.vrm ? source.scene : instanceOf(source.scene);
       normalizeScene(scene, CHAR_HEIGHT, { faceCamera: true });
       scene.traverse((o) => {
         if (o.isBone && !handBone && /hand.*r(ight)?|righthand|hand_r/i.test(o.name || '')) handBone = o;
@@ -121,6 +154,22 @@ export function createGlbWaifu(look, detail = 'full') {
       }
       visual.add(scene);
       model = scene;
+      // Auto-rigged models carry no clips: borrow the shared animation set through retargeting.
+      if (source.animSrc) {
+        scene.updateMatrixWorld(true);
+        const setup = source.nameOf ? vrmRetargetSetup(source.nameOf) : null;
+        source.animations = setup
+          ? retargetClips(scene, source.animSrc.scene, source.animSrc.animations, setup.map, 24, setup.roles)
+          : retargetClips(scene, source.animSrc.scene, source.animSrc.animations);
+        if (source.nameOf) {
+          const hn = source.nameOf('rightHand');
+          const hb = hn && scene.getObjectByName(hn);
+          if (hb) handBone = hb;
+        }
+      }
+      vrmObj = source.vrm || null;
+      if (spec.retarget && !source.vrm) toToon(scene);
+      if (spec.jiggle && !source.vrm) jiggler = addJiggle(scene, { bust: spec.bust, amp: spec.jiggleAmp });
       visual.remove(placeholder);
       placeholder.geometry.dispose();
       placeholder.material.dispose();
@@ -344,6 +393,8 @@ export function createGlbWaifu(look, detail = 'full') {
       }
       if (!currentAction && clips.idle) playClip('idle', 0);
       mixer.update(dt);
+      if (jiggler) jiggler.update(dt, speed, ctx.vy || 0, ctx.jiggle ?? 1);
+      if (vrmObj) vrmObj.update(dt);
     } else if (model) {
       // Static imports (no clips) get a hand-authored idle: a slow breathing
       // bob plus a weight shift, amplitude driven by movement.

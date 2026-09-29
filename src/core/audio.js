@@ -1,6 +1,6 @@
 /** Synth bus with file-based layering. Real gun/voice/music files stream in lazily; synth is the fallback. */
 
-import { GUN_FIRE, GUN_RELOAD, GUN_DRY, GUN_AIM, GUN_EQUIP, MUSIC_TRACKS, DIALOGUE } from '../data/audioFiles.js';
+import { GUN_FIRE, GUN_RELOAD, GUN_DRY, GUN_AIM, GUN_EQUIP, MUSIC_TRACKS, VOICE } from '../data/audioFiles.js';
 
 const pickOne = (list) => list[Math.floor(Math.random() * list.length)];
 
@@ -159,21 +159,22 @@ export function createAudio(getSettings) {
   }
 
   const VOICE_FILES = {
-    hurt: DIALOGUE.damage,
-    knock: DIALOGUE.damage,
-    elim: DIALOGUE.death,
-    defeat: DIALOGUE.death,
-    victory: DIALOGUE.confirmation,
-    revive: DIALOGUE.confirmation,
-    pickup: DIALOGUE.confirmation,
-    emote: DIALOGUE.greeting,
+    hurt: VOICE.hurt, knock: VOICE.knock, elim: VOICE.elim, defeat: VOICE.elim, kill: VOICE.kill,
+    victory: VOICE.victory, revive: VOICE.revive, pickup: VOICE.pickup, reload: VOICE.reload, drop: VOICE.drop,
   };
+  /** How often each event is voiced, so lines stay a treat and not a wall of noise. */
+  const VOICE_CHANCE = { hurt: 0.45, knock: 1, elim: 1, defeat: 1, kill: 0.75, victory: 1, revive: 1, pickup: 0.25, reload: 0.2, drop: 1 };
+  let voiceBusyUntil = 0;
 
   function voice(kind) {
     if (!ctx) return;
     const files = VOICE_FILES[kind];
-    if (files && files.length && Math.random() < 0.65) {
-      playFile(pickOne(files), 0.8);
+    if (files && files.length) {
+      if (performance.now() < voiceBusyUntil) return;
+      if (Math.random() < (VOICE_CHANCE[kind] ?? 0.5)) {
+        voiceBusyUntil = performance.now() + 1400;
+        playFile(pickOne(files), 0.9);
+      }
       return;
     }
     const sets = {
@@ -242,6 +243,7 @@ export function createAudio(getSettings) {
       case 'back': tone(440, 0.07, 'sine', 0.05); break;
       case 'dry': playFileOr(GUN_DRY, 0.7, () => tone(140, 0.05, 'square', 0.04)); break;
       case 'reload':
+        voice('reload');
         playFileOr(GUN_RELOAD, 0.7, () => {
           tone(520, 0.05, 'triangle', 0.05);
           setTimeout(() => tone(780, 0.06, 'triangle', 0.05), 80);
@@ -251,7 +253,8 @@ export function createAudio(getSettings) {
       case 'aim': playFileOr(GUN_AIM, 0.35, () => {}); break;
       case 'hit': tone(1500, 0.035, 'square', 0.05); boom(320, 120, 0.05, 0.07); noiseBand(0.03, 0.08, 'bandpass', 3000, 2000); break;
       case 'head': tone(2093, 0.14, 'triangle', 0.09); tone(3136, 0.1, 'sine', 0.05); boom(400, 140, 0.06, 0.08); noiseBand(0.03, 0.1, 'highpass', 5000, 3500); break;
-      case 'kill': tone(1568, 0.16, 'triangle', 0.09); setTimeout(() => tone(2093, 0.22, 'triangle', 0.09), 70); boom(260, 60, 0.18, 0.14); break;
+      case 'dropin': voice('drop'); break;
+      case 'kill': voice('kill'); tone(1568, 0.16, 'triangle', 0.09); setTimeout(() => tone(2093, 0.22, 'triangle', 0.09), 70); boom(260, 60, 0.18, 0.14); break;
       case 'magout': noiseBand(0.05, 0.16, 'bandpass', 1800, 900); boom(300, 120, 0.05, 0.08); break;
       case 'magin': noiseBand(0.06, 0.2, 'bandpass', 1400, 700); boom(200, 70, 0.09, 0.14); setTimeout(() => noiseBand(0.04, 0.18, 'highpass', 2500, 1800), 90); break;
       case 'hurt': noise(0.08, 0.1, 300); voice('hurt'); break;

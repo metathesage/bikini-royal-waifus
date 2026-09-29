@@ -4,9 +4,10 @@ import { selfTestBasis } from './core/basis.js';
 import { createInput } from './core/input.js';
 import { createAudio } from './core/audio.js';
 import { loadSave, writeSave, snapshotLook, progress as awardProgress } from './core/store.js';
-import { rollLook, DEFAULT_SETTINGS } from './data/catalog.js';
+import { rollLook, DEFAULT_SETTINGS, addVrmModels } from './data/catalog.js';
+import { ANIMATED } from './game/bots.js';
 import { candidateLook, candidateById } from './data/candidates.js';
-import { primePsxRoster, assetReport } from './data/assets.js';
+import { primePsxRoster, assetReport, CHARACTERS } from './data/assets.js';
 import { createStudio } from './scene/studio.js';
 import { createMatch } from './game/match.js';
 import { createShell } from './ui/shell.js';
@@ -31,6 +32,20 @@ if (basisErrors.length) console.error(basisErrors);
 
 const save = loadSave();
 let look = save.look;
+
+// VRoid characters: drop .vrm files in public/assets/vrm and list them in manifest.json.
+try {
+  const r = await fetch('/assets/vrm/manifest.json', { cache: 'no-store' });
+  if (r.ok) {
+    const list = await r.json();
+    for (const e of list) {
+      CHARACTERS[e.id] = { id: e.id, name: e.name, rarity: e.rarity || 'legendary', url: '/assets/vrm/' + e.file, retarget: true, vrm: true, jiggle: e.jiggle !== false };
+    }
+    const ids = addVrmModels(list);
+    for (const id of ids) if (!ANIMATED.includes(id)) ANIMATED.unshift(id);
+    if (list.length && !look.model.startsWith('vrm_') && !ids.includes(look.model)) look = { ...look, model: list[0].id };
+  }
+} catch (e) { console.warn('no VRM manifest', e); }
 let settings = save.settings;
 let presets = save.presets;
 /** Lifetime level/XP/wallet shown by the menu profile chip. */

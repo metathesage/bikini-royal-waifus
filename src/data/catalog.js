@@ -394,3 +394,15 @@ export const POIS = [
   { id: 'rooftops', name: 'Skyline', x: 30, z: -24, color: '#67d4ff' },
   { id: 'crater', name: 'Heartfall', x: -34, z: 26, color: '#ff4d7a' },
 ];
+
+
+/** Register VRM characters listed in public/assets/vrm/manifest.json. Returns the new ids. */
+export function addVrmModels(list) {
+  const ids = [];
+  for (const e of list) {
+    if (MODELS.some((m) => m.id === e.id)) continue;
+    MODELS.unshift({ id: e.id, name: e.name, rarity: e.rarity || 'legendary', animated: true, blurb: e.blurb || 'Hand-made VRoid waifu with hair, skirt and bust physics.' });
+    ids.push(e.id);
+  }
+  return ids;
+}

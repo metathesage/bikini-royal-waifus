@@ -43,7 +43,9 @@ function frameQuat(o, frameInv, out) {
  * @param {Array<[string,string]>} map
  * @param {number} fps sampling rate
  */
-export function retargetClips(targetRoot, sourceRoot, clips, map = UAL_MAP, fps = 24) {
+export const MESHY_ROLES = { hips: 'Hips', leftArm: 'LeftArm', rightArm: 'RightArm', spine: 'Spine', leftFoot: 'LeftFoot', rightFoot: 'RightFoot' };
+
+export function retargetClips(targetRoot, sourceRoot, clips, map = UAL_MAP, fps = 24, roles = MESHY_ROLES) {
   targetRoot.updateMatrixWorld(true);
   sourceRoot.updateMatrixWorld(true);
 
@@ -53,7 +55,7 @@ export function retargetClips(targetRoot, sourceRoot, clips, map = UAL_MAP, fps 
     const s = sourceRoot.getObjectByName(sn);
     if (t && s) pairs.push({ t, s });
   }
-  if (!pairs.length || pairs[0].t.name !== 'Hips') return [];
+  if (!pairs.length || pairs[0].t.name !== roles.hips) return [];
 
   const tFrameInv = targetRoot.getWorldQuaternion(new THREE.Quaternion()).invert();
   // Source bones are measured relative to the animation's own root node, so the clip's
@@ -70,7 +72,7 @@ export function retargetClips(targetRoot, sourceRoot, clips, map = UAL_MAP, fps 
   }
   const hips = pairs[0];
   const feetY = (root, names) => names.reduce((acc, n) => acc + root.getObjectByName(n).getWorldPosition(_v).y, 0) / names.length;
-  const tHipsH = hips.t.getWorldPosition(_v).y - feetY(targetRoot, ['LeftFoot', 'RightFoot']);
+  const tHipsH = hips.t.getWorldPosition(_v).y - feetY(targetRoot, [roles.leftFoot, roles.rightFoot]);
   const sHipsH = hips.s.getWorldPosition(_v).y - feetY(sourceRoot, ['foot_l', 'foot_r']);
   const ratio = tHipsH / Math.max(0.01, sHipsH);
   const tRootQ = targetRoot.getWorldQuaternion(new THREE.Quaternion());
@@ -84,11 +86,11 @@ export function retargetClips(targetRoot, sourceRoot, clips, map = UAL_MAP, fps 
   for (const p of pairs) tParentBind.set(p.t, p.t.parent);
 
   const latRest = (() => {
-    const l = targetRoot.getObjectByName('LeftArm'); const r = targetRoot.getObjectByName('RightArm');
+    const l = targetRoot.getObjectByName(roles.leftArm); const r = targetRoot.getObjectByName(roles.rightArm);
     if (!l || !r) return null;
     return l.getWorldPosition(new THREE.Vector3()).sub(r.getWorldPosition(new THREE.Vector3())).applyQuaternion(tFrameInv).setY(0).normalize();
   })();
-  const spinePair = pairs.find((p) => p.t.name === 'Spine');
+  const spinePair = pairs.find((p) => p.t.name === roles.spine);
   const restore = new Map();
   sourceRoot.traverse((o) => restore.set(o, [o.position.clone(), o.quaternion.clone(), o.scale.clone()]));
   const out = [];
@@ -170,4 +172,24 @@ export function retargetClips(targetRoot, sourceRoot, clips, map = UAL_MAP, fps 
   for (const [o, [p, q, sc]] of restore) { o.position.copy(p); o.quaternion.copy(q); o.scale.copy(sc); }
   sourceRoot.updateMatrixWorld(true);
   return out;
+}
+
+
+/** Build the UAL map and roles for a VRM rig. `nameOf(humanBone)` returns the node name or null. */
+export function vrmRetargetSetup(nameOf) {
+  const g = (b) => nameOf(b);
+  const upper = g('upperChest');
+  const pairsDef = [
+    ['hips', 'pelvis'], ['spine', 'spine_01'],
+    ...(upper ? [['chest', 'spine_02'], ['upperChest', 'spine_03']] : [['chest', 'spine_03']]),
+    ['neck', 'neck_01'], ['head', 'head'],
+    ['leftShoulder', 'clavicle_l'], ['leftUpperArm', 'upperarm_l'], ['leftLowerArm', 'lowerarm_l'], ['leftHand', 'hand_l'],
+    ['rightShoulder', 'clavicle_r'], ['rightUpperArm', 'upperarm_r'], ['rightLowerArm', 'lowerarm_r'], ['rightHand', 'hand_r'],
+    ['leftUpperLeg', 'thigh_l'], ['leftLowerLeg', 'calf_l'], ['leftFoot', 'foot_l'], ['leftToes', 'ball_l'],
+    ['rightUpperLeg', 'thigh_r'], ['rightLowerLeg', 'calf_r'], ['rightFoot', 'foot_r'], ['rightToes', 'ball_r'],
+  ];
+  const map = [];
+  for (const [hb, src] of pairsDef) { const n = g(hb); if (n) map.push([n, src]); }
+  const roles = { hips: g('hips'), leftArm: g('leftUpperArm'), rightArm: g('rightUpperArm'), spine: upper || g('chest'), leftFoot: g('leftFoot'), rightFoot: g('rightFoot') };
+  return { map, roles };
 }

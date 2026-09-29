@@ -1187,6 +1187,7 @@ function beginBus() {
    * small hull still cannot be dropped through.
    */
   function dropPlayer() {
+    audio.sfx('dropin');
     const g = world.ufo.group;
     const clear = Math.max(1, (world.ufo.hullR || 5) + 1.5);
     // The ship's local +X, flattened: stepping off the starboard rail.
@@ -3017,6 +3018,7 @@ function beginBus() {
       if (d > 135) { b.avatar.group.visible = false; continue; }
       b.avatar.update(dt, {
         speed: Math.hypot(b.vel.x, b.vel.z),
+        vy: b.vel.y,
         sprint: Math.hypot(b.vel.x, b.vel.z) > 6,
         jiggle: d < 24 ? jiggle : 0.6,
         extra: d < 12,

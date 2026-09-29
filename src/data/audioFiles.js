@@ -62,3 +62,18 @@ export const DIALOGUE = {
     '/assets/audio/dialogue/confirmation_10_karen.wav',
   ],
 };
+
+
+/** Generated anime-style voice lines (Higgsfield), by event. */
+const V = (n) => `/assets/audio/voice/pixie_${n}.wav`;
+export const VOICE = {
+  hurt: [V('hurt_1'), V('hurt_2')],
+  knock: [V('knock_1')],
+  elim: [V('elim_1')],
+  kill: [V('kill_1'), V('kill_2')],
+  victory: [V('victory_1')],
+  revive: [V('revive_1')],
+  pickup: [V('pickup_1')],
+  reload: [V('reload_1')],
+  drop: [V('drop_1')],
+};

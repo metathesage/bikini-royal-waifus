@@ -229,6 +229,37 @@ function buildSky(scene) {
   return { sky, sun, hemi };
 }
 
+/**
+ * The drop ship: a sleek noir jet. Riders stand on the wings and spine; the group
+ * keeps the same contract as the old pyramid (seats, hullR, roof) so the match code is unchanged.
+ */
+function buildJet(kit) {
+  const group = new THREE.Group();
+  const holder = new THREE.Group();
+  group.add(holder);
+  kit.proto(HF('jet'), { size: 24, up: 'y' }).then((proto) => {
+    if (!proto) return;
+    const inst = proto.clone(true);
+    inst.rotation.y = Math.PI;      // nose along the direction of travel (-Z)
+    holder.add(inst);
+    inst.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
+  });
+  holder.position.y = -1.5;
+  // A soft afterburner glow so the jet reads from the ground.
+  const glow = new THREE.Mesh(new THREE.ConeGeometry(0.9, 5, 10, 1, true), new THREE.MeshBasicMaterial({ color: 0xffb27a, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.DoubleSide }));
+  glow.rotation.x = -Math.PI / 2;
+  glow.position.set(0, -0.2, 14.5);
+  group.add(glow);
+  const seats = [];
+  for (let i = 0; i < 8; i++) {
+    const side = i % 2 ? 1 : -1;
+    const row = Math.floor(i / 2);
+    seats.push({ x: side * 2.2, y: 0.2, z: -3.5 + row * 2.4, yaw: 0 });
+  }
+  group.position.set(0, 70, 0);
+  return { group, beam: null, seats, hullR: 4.5, roof: [] };
+}
+
 /* ------------------------------------------------------------------ *
  * Placement
  * ------------------------------------------------------------------ */
@@ -520,7 +551,7 @@ export function buildBlossomCity(scene, seed = 5, renderer = null) {
     }
   }
 
-  const ufo = buildUfo();
+  const ufo = kit ? buildJet(kit) : buildUfo();
   scene.add(ufo.group);
   const lobby = buildLobby();
   scene.add(lobby);

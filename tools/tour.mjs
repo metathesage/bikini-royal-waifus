@@ -13,7 +13,9 @@ const click = (a) => p.evaluate((x) => { const e = document.querySelector(`[data
 await wait(2000); await click('boot'); await wait(3000); await click('play');
 for (let i = 0; i < 90; i++) { await wait(1000); const ph = await p.evaluate(() => { const m = window.__brMatch && window.__brMatch(); return m && m.ready() ? m.phase() : null; }); if (ph === 'bus') break; }
 console.log('GL', await p.evaluate(() => { const r = window.__brRenderer().getContext(); const e = r.getExtension('WEBGL_debug_renderer_info'); return e ? r.getParameter(e.UNMASKED_RENDERER_WEBGL) : 'n/a'; }));
-await wait(25000);
+await wait(14000);
+await p.screenshot({ path: prefix + '-busshot.png' });
+await wait(11000);
 await p.evaluate(() => window.__brSkipBus());
 await wait(1000);
 await wait(9000);
