@@ -21,15 +21,15 @@ const RANGE_RESPAWN = 0.9;
 /** How long the HUD holds a "target down" callout. */
 const RANGE_CALLOUT = 1.1;
 const ZONE_PLAN = [
-  { wait: 55, shrink: 45, to: 46 },
-  { wait: 40, shrink: 40, to: 32 },
-  { wait: 35, shrink: 35, to: 21 },
-  { wait: 30, shrink: 30, to: 12 },
-  { wait: 25, shrink: 25, to: 0 },
+  { wait: 25, shrink: 35, to: 42 },
+  { wait: 30, shrink: 30, to: 28 },
+  { wait: 25, shrink: 25, to: 17 },
+  { wait: 20, shrink: 20, to: 8 },
+  { wait: 15, shrink: 20, to: 0 },
 ];
-const ZONE_DPS = [1, 2, 5, 9, 16];
-const LOBBY_TIME = 18;
-const BUS_TIME = 42;
+const ZONE_DPS = [2, 4, 8, 12, 20];
+const LOBBY_TIME = 5;
+const BUS_TIME = 15;
 /** Minimum seconds between directional hit indicators, so sustained fire pulses. */
 const HURT_FX_MIN_GAP = 0.13;
 /** How long the loading bar waits on environment dressing before moving on. */
@@ -242,11 +242,12 @@ export function createMatch({ getSettings, audio, getLook, renderer = null, map 
     abilityLockSay: 0,
     mantle: null,
     gliding: false,
-    guns: [null, null],
+    // Matches reset(): land with a sidearm and two mags.
+    guns: [{ id: 'pistol', mag: GUNS.pistol.mag }, null],
     gunIndex: 0,
-    active: 2,
+    active: 0,
     meleeId: 'katana',
-    ammo: { light: 0, medium: 0, heavy: 0, shells: 0 },
+    ammo: { light: GUNS.pistol.mag * 2, medium: 0, heavy: 0, shells: 0 },
     items: [],
     itemIndex: 0,
     channel: null,
@@ -273,7 +274,7 @@ export function createMatch({ getSettings, audio, getLook, renderer = null, map 
    * match of a session is built without a reset, so any drift here means the
    * opening circle is a different size from every later one.
    */
-  const zone = { x: 6, z: -4, r: 125, from: 125, phase: 0, mode: 'wait', left: ZONE_PLAN[0].wait, dps: 0 };
+  const zone = { x: 6, z: -4, r: 62, from: 62, phase: 0, mode: 'wait', left: ZONE_PLAN[0].wait, dps: 0 };
   const clock = { phase: 'boot', lobby: LOBBY_TIME, bus: 0, match: 0, end: null };
 /** Seconds since the drop ship started leaving; negative while it is still docked. */
 let ufoDepart = -1;
@@ -542,8 +543,8 @@ let ufoDepart = -1;
       else if (a.ammo) addPickup('ammo', a.ammo, a.x, a.y, a.z);
       else {
         const roll = rng();
-        if (roll < 0.45) addPickup('gun', rollGun(rng), a.x, a.y, a.z);
-        else if (roll < 0.7) addPickup('ammo', rollAmmoType(rng), a.x, a.y, a.z);
+        if (roll < 0.65) addPickup('gun', rollGun(rng), a.x, a.y, a.z);
+        else if (roll < 0.85) addPickup('ammo', rollAmmoType(rng), a.x, a.y, a.z);
         else addPickup('item', PICK_HEALS[Math.floor(rng() * PICK_HEALS.length)], a.x, a.y, a.z);
       }
     }
@@ -639,11 +640,13 @@ let ufoDepart = -1;
 
   function reset() {
     if (!built) return;
-    player.guns = [null, null];
+    // Land armed: a sidearm and two mags, so the first fight can start at once.
+    player.guns = [{ id: 'pistol', mag: GUNS.pistol.mag }, null];
     player.gunIndex = 0;
-    player.active = 2;
+    player.active = 0;
     player.meleeId = look().melee || 'katana';
     player.ammo = { light: 0, medium: 0, heavy: 0, shells: 0 };
+    player.ammo[GUNS.pistol.ammo] += GUNS.pistol.mag * 2;
     player.items = [];
     player.itemIndex = 0;
     player.channel = null;
@@ -689,7 +692,7 @@ let ufoDepart = -1;
       b.avatar.group.visible = false;
       if (b.avatar.group.parent !== scene) scene.attach(b.avatar.group);
     }
-    zone.x = 6; zone.z = -4; zone.r = 125; zone.from = 125;
+    zone.x = 6; zone.z = -4; zone.r = 62; zone.from = 62;
     zone.phase = 0; zone.mode = 'wait'; zone.left = ZONE_PLAN[0].wait; zone.dps = 0;
     dropT = 75;
     abstractT = 2;

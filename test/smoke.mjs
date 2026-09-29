@@ -192,14 +192,14 @@ setAssetManifest(JSON.parse(readFileSync(
   if (added !== roster.length) throw new Error(`locker took ${added}/${roster.length} rigged characters`);
 
   const bots = createRoster('Yuna');
-  if (bots.length !== 43) throw new Error(`expected 43 bots, got ${bots.length}`);
+  if (bots.length !== 21) throw new Error(`expected 21 bots, got ${bots.length}`);
   await assignBotModels(bots);
 
   const rigged = bots.filter((b) => b.look.model && b.look.model.startsWith('character_'));
-  if (rigged.length < 25) throw new Error(`only ${rigged.length}/${bots.length} bots got a rigged body`);
+  if (rigged.length < Math.floor(bots.length * 0.55)) throw new Error(`only ${rigged.length}/${bots.length} bots got a rigged body`);
   // A roster where everybody looks identical defeats the point of the library.
   const distinct = new Set(rigged.map((b) => b.look.model));
-  if (distinct.size < 20) throw new Error(`only ${distinct.size} distinct bodies across the roster`);
+  if (distinct.size < Math.floor(rigged.length * 0.75)) throw new Error(`only ${distinct.size} distinct bodies across the roster`);
 
   // The model has to survive the trip into an avatar. `createWaifu` chooses
   // between an import and the procedural body, and a detail-level guard once

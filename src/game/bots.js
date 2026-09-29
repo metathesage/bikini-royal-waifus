@@ -56,7 +56,8 @@ export function createRoster(playerName) {
   partner.dropU = 0.22;
   bots.push(partner);
   let ni = 1;
-  for (let team = 1; team <= 21; team++) {
+  // 10 duos + partner: enough to find fights on a 64m island without a wipe in minute one.
+  for (let team = 1; team <= 10; team++) {
     const a = makeBot(bots.length, names[ni++] || `Waifu ${team}a`, team, team * 10 + 3, rng);
     const b = makeBot(bots.length + 1, names[ni++] || `Waifu ${team}b`, team, team * 10 + 9, rng);
     a.ally = b.id;

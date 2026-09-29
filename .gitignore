@@ -78,6 +78,6 @@ he_rig.txt
 
 # 1.3 GB of art source, unrelated to running the game. The shipped, runtime
 # assets under public/ are what matter and they ARE tracked.
-character design/
-weapons/
+/character design/
+/weapons/
 
