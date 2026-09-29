@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
 import { selfTestBasis } from './core/basis.js';
 import { createInput } from './core/input.js';
 import { createAudio } from './core/audio.js';
@@ -19,6 +20,11 @@ renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// Cel outlines: inverted-hull ink line around every toon mesh (three's OutlineEffect).
+const outlineFx = new OutlineEffect(renderer, { defaultThickness: 0.0032, defaultColor: [0.09, 0.03, 0.08], defaultAlpha: 1, defaultKeepAlive: true });
+let outlinesOn = true;
+const outline = { render: (sc, cam) => (outlinesOn ? outlineFx.render(sc, cam) : renderer.render(sc, cam)) };
+window.__brOutlines = (on) => { outlinesOn = !!on; };
 
 const basisErrors = selfTestBasis();
 if (basisErrors.length) console.error(basisErrors);
@@ -296,7 +302,8 @@ function currentMap() {
   const p = new URLSearchParams(location.search).get('map');
   if (p === 'graybox' || p === 'range') return 'graybox';
   if (p === 'island' || p === 'classic') return 'island';
-  return 'sakura';
+  if (p === 'sakura' || p === 'isle') return 'sakura';
+  return 'city';
 }
 
 function startMatch() {
@@ -492,7 +499,7 @@ function frame(now) {
       shell.toast('Click to look. Xbox pad works without the click.');
     }
     studio.update(dt, actions, flags);
-    renderer.render(studio.scene, studio.camera);
+    outline.render(studio.scene, studio.camera);
   } else if (screen === 'game' || screen === 'pause') {
     gameMode = true;
     if (!paused && match) {
@@ -536,11 +543,11 @@ function frame(now) {
       cam.position.copy(_freecamPos);
       cam.quaternion.copy(_freecamQuat);
     }
-    renderer.render(match.scene, cam);
+    outline.render(match.scene, cam);
   } else {
     if (screen === 'splash') studio.setPose('idle');
     studio.update(dt, actions, flags);
-    renderer.render(studio.scene, studio.camera);
+    outline.render(studio.scene, studio.camera);
   }
   requestAnimationFrame(frame);
 }

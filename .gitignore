@@ -92,3 +92,6 @@ he_rig.txt
 # leave it -- it is art source, not something the build needs.
 environment assets/
 
+
+hf-concepts/
+.workbuddy-ai/

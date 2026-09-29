@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { buildWorld, busPosition, heightAt, ISLAND_R, SEA_Y } from '../world/map.js';
 import { buildSakuraIsle } from '../world/sakuraIsle.js';
+import { buildBlossomCity } from '../world/blossomCity.js';
 import { buildGraybox } from '../world/graybox.js';
 import { createWaifu } from '../avatar/waifu.js';
 import { createViewmodel, createWeaponMesh } from '../avatar/viewmodel.js';
@@ -69,7 +70,7 @@ function mulberry(seed) {
   };
 }
 
-export function createMatch({ getSettings, audio, getLook, renderer = null, map = 'sakura' }) {
+export function createMatch({ getSettings, audio, getLook, renderer = null, map = 'city' }) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(78, 1, 0.08, 480);
   const cine = new THREE.PerspectiveCamera(42, 1, 0.1, 480);
@@ -450,8 +451,10 @@ let ufoDepart = -1;
     if (buildIndex === 0) {
       buildStart = performance.now();
       world = map === 'graybox' ? buildGraybox(scene, 11, renderer)
-        : map === 'sakura' ? buildSakuraIsle(scene, 11, renderer)
-          : buildWorld(scene, 11, renderer);
+        : map === 'city' ? buildBlossomCity(scene, 5, renderer)
+          : map === 'sakura' ? buildSakuraIsle(scene, 11, renderer)
+            : buildWorld(scene, 11, renderer);
+      applyProfile0();
       // The island has a lobby deck that needs a floor to stand on; the graybox
       // is all ground level and has no lobby at all.
       if (world.lobby && world.lobby.userData.box) world.boxes.push(world.lobby.userData.box);
@@ -510,6 +513,27 @@ let ufoDepart = -1;
       return 1;
     }
     return 1;
+  }
+
+  /** Per-map tuning (zone size, bus route, radii). Maps without a profile keep the island defaults. */
+  const DEFAULT_PROFILE = { zoneR: 62, zoneCenter: [6, -4], zoneJitter: 0, oceanR: 106, mapR: ISLAND_R * 1.12, busTime: BUS_TIME, planScale: 1, shrinkScale: 1, botPoiSpread: 8, bus: busPosition };
+  let prof = DEFAULT_PROFILE;
+  let zonePlan = ZONE_PLAN;
+  function applyProfile0() {
+    prof = { ...DEFAULT_PROFILE, ...(world && world.profile ? world.profile : {}) };
+    zonePlan = ZONE_PLAN.map((q) => ({ wait: q.wait, shrink: q.shrink * prof.shrinkScale, to: q.to * prof.planScale }));
+  }
+  /** Send each bot to one of the map's districts, spread around it. */
+  function assignBotPois() {
+    if (!(world && world.pois && world.pois.length && world.profile)) return;
+    let k = Math.floor(Math.random() * world.pois.length);
+    for (const b of bots) {
+      if (b.dummy || b.partner) continue;
+      const poi = world.pois[k++ % world.pois.length];
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.random() * prof.botPoiSpread;
+      b.poi = { x: poi.x + Math.cos(a) * r, z: poi.z + Math.sin(a) * r };
+    }
   }
 
   let zoneMesh = null;
@@ -717,8 +741,11 @@ let ufoDepart = -1;
       b.avatar.group.visible = false;
       if (b.avatar.group.parent !== scene) scene.attach(b.avatar.group);
     }
-    zone.x = 6; zone.z = -4; zone.r = 62; zone.from = 62;
-    zone.phase = 0; zone.mode = 'wait'; zone.left = ZONE_PLAN[0].wait; zone.dps = 0;
+    { const j = prof.zoneJitter || 0; const a = Math.random() * Math.PI * 2; const rr = Math.sqrt(Math.random()) * j;
+      zone.x = prof.zoneCenter[0] + Math.cos(a) * rr; zone.z = prof.zoneCenter[1] + Math.sin(a) * rr; }
+    assignBotPois();
+    zone.r = prof.zoneR; zone.from = prof.zoneR;
+    zone.phase = 0; zone.mode = 'wait'; zone.left = zonePlan[0].wait; zone.dps = 0;
     dropT = 40;
     abstractT = 2;
     // Restarting a range session means re-arming and standing the dummies back
@@ -867,7 +894,7 @@ let ufoDepart = -1;
   function buildMapImage(size = 1024) {
     if (!renderer || !world || !scene) return null;
     if (mapImage) return mapImage;
-    const R = ISLAND_R * 1.12;
+    const R = prof.mapR;
     const cam = new THREE.OrthographicCamera(-R, R, R, -R, 0.1, 400);
     cam.position.set(0, 260, 0);
     cam.up.set(0, 0, -1);
@@ -1058,7 +1085,7 @@ function skipBus() {
   // Deliberately does not go through updateBus(): that needs a full input
   // object with look deltas, and a partial one produces NaN player positions
   // that look like a physics bug.
-  const p = busPosition(0.5);
+  const p = prof.bus(0.5);
   world.ufo.group.position.set(p.x, p.y, p.z);
   player.local.set(0, 0, 0);
   // dropPlayer() owns the exit point and reads the ship's own hull radius, so
@@ -1081,7 +1108,7 @@ function beginBus() {
     world.ufo.group.visible = true;
     setRoof(false);
     inspect = false;
-    zone.left = ZONE_PLAN[0].wait;
+    zone.left = zonePlan[0].wait;
     emit({ type: 'toast', text: 'Aboard the pyramid. Hold for launch.' });
     audio.sfx('crystal');
   }
@@ -1125,10 +1152,10 @@ function beginBus() {
     // Jump is only a drop once the route is running. During the hold it is
     // ignored entirely, so nobody can leave before the drop is live.
     if (clock.intro <= 0) clock.bus += dt;
-    const u = clamp(clock.bus / BUS_TIME, 0, 1);
-    const p = busPosition(u);
+    const u = clamp(clock.bus / prof.busTime, 0, 1);
+    const p = prof.bus(u);
     world.ufo.group.position.set(p.x, p.y, p.z);
-    world.ufo.group.rotation.y = Math.atan2(-(busPosition(Math.min(1, u + 0.01)).x - p.x), -(busPosition(Math.min(1, u + 0.01)).z - p.z));
+    world.ufo.group.rotation.y = Math.atan2(-(prof.bus(Math.min(1, u + 0.01)).x - p.x), -(prof.bus(Math.min(1, u + 0.01)).z - p.z));
     applyLook(input, settings, false);
     const basis = planarBasis(yawPivot);
     player.local.x += basis.right.x * input.moveX * dt * 3 + basis.forward.x * input.moveY * dt * 3;
@@ -2508,7 +2535,7 @@ function beginBus() {
 
   function updateZone(dt) {
     if (clock.phase === 'lobby' || clock.phase === 'end') return;
-    const plan = ZONE_PLAN[zone.phase];
+    const plan = zonePlan[zone.phase];
     zone.left -= dt;
     if (zone.mode === 'shrink' && plan) {
       const u = 1 - zone.left / plan.shrink;
@@ -2526,7 +2553,7 @@ function beginBus() {
     } else {
       zone.r = plan.to;
       zone.phase++;
-      const next = ZONE_PLAN[zone.phase];
+      const next = zonePlan[zone.phase];
       if (!next) { zone.mode = 'done'; zone.left = 9999; zone.dps = 22; zone.r = 0; return; }
       zone.mode = 'wait';
       zone.left = next.wait;
@@ -2554,7 +2581,7 @@ function beginBus() {
 
   function oceanDamage(dt) {
     if (!player.alive || player.gliding || clock.phase !== 'play') return;
-    if (player.pos.y < -1.2 || Math.hypot(player.pos.x, player.pos.z) > 106) {
+    if (player.pos.y < -1.2 || Math.hypot(player.pos.x, player.pos.z) > prof.oceanR) {
       hurtPlayer(10 * dt, { name: 'The tide', quiet: true });
       const l = Math.hypot(player.pos.x, player.pos.z) || 1;
       player.pos.x -= (player.pos.x / l) * dt * 4;
@@ -3096,6 +3123,12 @@ function beginBus() {
       );
       cine.lookAt(player.pos.x, focusY, player.pos.z);
     }
+    if (world.followSun && world.sun) {
+      // Shadows follow the player across a map bigger than one shadow frustum.
+      world.sun.target.position.set(player.pos.x, player.pos.y, player.pos.z);
+      world.sun.position.set(player.pos.x + 90, player.pos.y + 70, player.pos.z + 40);
+      world.sun.target.updateMatrixWorld(true);
+    }
     if (world.sky) {
       const ac = activeCamera();
       ac.updateMatrixWorld(true);
@@ -3139,7 +3172,7 @@ function beginBus() {
     snap.gliding = player.gliding;
     snap.low = player.hp > 0 && player.hp <= 30;
     snap.lobby = Math.max(0, clock.lobby);
-    snap.bus = clock.bus / BUS_TIME;
+    snap.bus = clock.bus / prof.busTime;
     snap.countdown = clock.phase === 'bus' && clock.intro > 0 ? Math.ceil(clock.intro) : 0;
     snap.match = clock.match;
     snap.result = result;
@@ -3189,7 +3222,7 @@ function beginBus() {
       };
     } else {
       snap.zoneDanger = Math.hypot(player.pos.x - zone.x, player.pos.z - zone.z) > zone.r;
-      const plan = ZONE_PLAN[zone.phase];
+      const plan = zonePlan[zone.phase];
       snap.zoneText = zone.mode === 'shrink' ? `Storm ${zone.left.toFixed(0)}s` : plan ? `Calm ${Math.max(0, zone.left).toFixed(0)}s` : 'Final circle';
     }
     snap.channel = player.channel ? 1 - player.channel.t / player.channel.max : 0;
@@ -3412,7 +3445,7 @@ function beginBus() {
     debugInventory: () => player.inv.slots.map((s, i) => (s ? { i, id: s.id, count: s.count } : { i, empty: true })),
     /** The top-down island image for the HUD minimap. Built on first ask. */
     mapImage: () => (built ? buildMapImage() : null),
-    mapRadius: () => ISLAND_R * 1.12,
+    mapRadius: () => prof.mapR,
     debugBots: () => {
       const bad = [];
       let grounded = 0;

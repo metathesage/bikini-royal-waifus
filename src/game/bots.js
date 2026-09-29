@@ -267,7 +267,20 @@ export function stepBot(bot, ctx) {
   }
   bot.targetId = null;
 
-  const home = bot.poi;
+  // Wander between spots around the district (or, once the storm is moving, the safe circle),
+  // so the roster spreads over the loot instead of standing on one point.
+  bot.homeT = (bot.homeT || 0) - ctx.dt;
+  if (!bot.home || bot.homeT <= 0) {
+    const inward = zone.phase >= 1;
+    const cx = inward ? zone.x : bot.poi.x;
+    const cz = inward ? zone.z : bot.poi.z;
+    const rad = inward ? Math.max(6, zone.r * 0.6) : 26;
+    const a = Math.random() * Math.PI * 2;
+    const r = Math.sqrt(Math.random()) * rad;
+    bot.home = { x: cx + Math.cos(a) * r, z: cz + Math.sin(a) * r };
+    bot.homeT = 10 + Math.random() * 14;
+  }
+  const home = bot.home;
   const dHome = Math.hypot(home.x - me.x, home.z - me.z);
   if (dHome > 8) steer(bot, home.x, home.z, 5.2);
   else {

@@ -992,7 +992,7 @@ function buildBridges(B) {
  * match path, and this map takes that path -- it has a real drop, a real
  * storm and real bots. The seat ring is kept at 6 to match the island.
  * ------------------------------------------------------------------ */
-function buildUfo() {
+export function buildUfo() {
   const group = new THREE.Group();
   const black = new THREE.MeshToonMaterial({ color: '#0d0a12', gradientMap: toonRamp(), emissive: '#1a0f24', emissiveIntensity: 1 });
   const body = new THREE.CylinderGeometry(4.6, 17, 13, 4, 1).rotateY(Math.PI / 4);
@@ -1039,7 +1039,7 @@ function buildUfo() {
  * so the player has a floor to stand on during the lobby, and a missing one
  * drops them through the map before the match has even started.
  */
-function buildLobby() {
+export function buildLobby() {
   const g = new THREE.Group();
   const T = (c, e, i) => new THREE.MeshToonMaterial({ color: c, gradientMap: toonRamp(), emissive: e || '#000', emissiveIntensity: i || 0 });
   const put = (geo, mat, x, y, z, sx = 1, sy = 1, sz = 1, ry = 0) => {

@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "start": "vite",
-    "test": "node test/frame.test.mjs && node test/kit.test.mjs && node test/rig.test.mjs && node test/inventory.test.mjs && node test/candidates.test.mjs && node test/smoke.mjs && node tools/probe-sakura.mjs && node tools/probe-dress.mjs",
+    "test": "node test/frame.test.mjs && node test/kit.test.mjs && node test/rig.test.mjs && node test/inventory.test.mjs && node test/candidates.test.mjs && node test/smoke.mjs && node tools/probe-sakura.mjs && node tools/probe-dress.mjs && node tools/probe-city.mjs",
     "test:assets": "node tools/probe-nan.mjs",
     "probe:env": "node tools/probe-env.mjs \"environment assets\"",
     "probe:dress": "node tools/probe-dress.mjs",
@@ -21,6 +21,9 @@
     "three": "0.170.0"
   },
   "devDependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
+    "meshoptimizer": "^1.3.0",
     "puppeteer-core": "^23.11.1",
     "vite": "^6.0.0"
   }

@@ -1,0 +1,26 @@
+<!doctype html><html><body style="margin:0;background:#222"><canvas id="c"></canvas>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js';
+const names = (new URLSearchParams(location.search).get('m') || '').split(',');
+const W = 1600, H = 700;
+const r = new THREE.WebGLRenderer({ canvas: document.getElementById('c'), antialias: true });
+r.setSize(W, H); r.outputColorSpace = THREE.SRGBColorSpace;
+const fx = new OutlineEffect(r, { defaultThickness: 0.004 });
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#f0d8e0');
+scene.add(new THREE.HemisphereLight(0xffffff, 0x886677, 1.2)); const d = new THREE.DirectionalLight(0xffffff, 1.5); d.position.set(3, 5, 4); scene.add(d);
+const cam = new THREE.PerspectiveCamera(35, W / H, 0.1, 100); cam.position.set(0, 1.6, 9); cam.lookAt(0, 0.9, 0);
+const L = new GLTFLoader(); let x = -(names.length - 1) * 1.6;
+let n = 0;
+for (const nm of names) {
+  L.load(`/assets/hf/${nm}.glb`, (g) => {
+    const o = g.scene; const b = new THREE.Box3().setFromObject(o); const s = b.getSize(new THREE.Vector3()); const k = 2.6 / Math.max(s.x, s.y, s.z);
+    o.scale.setScalar(k); const b2 = new THREE.Box3().setFromObject(o); const c = b2.getCenter(new THREE.Vector3());
+    o.position.set(-c.x + x, -b2.min.y, -c.z); x += 3.2; scene.add(o);
+    o.traverse((m) => { if (m.isMesh) { const mats = Array.isArray(m.material) ? m.material : [m.material]; mats.forEach((q) => { q.userData.outlineParameters = { thickness: 0.004 }; }); } });
+    if (++n === names.length) { window.__done = true; fx.render(scene, cam); }
+  });
+}
+setInterval(() => fx.render(scene, cam), 500);
+</script></body></html>

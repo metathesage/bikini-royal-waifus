@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { POIS } from '../data/catalog.js';
 import { makeBox } from '../game/collision.js';
 import {
@@ -225,6 +226,14 @@ export function createKit(group, boxes) {
       const loader = src.endsWith('.fbx') ? loadFbx : src.endsWith('.obj') ? loadObj : loadGltf;
       PIECE_CACHE.set(key, loader(src).then((loaded) => {
         const inst = instanceOf(loaded.scene || loaded);
+        // Generated (image-to-3D) meshes ship with positions and UVs but no normals, which
+        // lights them pure black. Weld and compute smooth normals so they shade like the rest.
+        inst.traverse((o) => {
+          if (o.isMesh && o.geometry && !o.geometry.attributes.normal) {
+            if (!o.geometry.index) o.geometry = mergeVertices(o.geometry, 1e-4);
+            o.geometry.computeVertexNormals();
+          }
+        });
         if (opts.height != null) normalizeScene(inst, opts.height, { up: opts.up || 'auto' });
         else fitToFootprint(inst, opts.size || 1);
         // Imported props are authored as metals and render pure black with
@@ -292,6 +301,12 @@ export function createKit(group, boxes) {
   return {
     /** Place into the island, optionally registering a collision box. */
     put(src, opts = {}) { return spawn(group, src, opts, true); },
+    /** The prepared, normalised prototype for a piece, for callers that instance it themselves. */
+    proto(src, opts = {}) {
+      const job = baseFor(src, opts);
+      jobs.push(job.then(() => { done += 1; }));
+      return job;
+    },
     /** Place into a sub-assembly (drop-ship hull, market stall) with no collision. */
     putIn(parent, src, opts = {}) { return spawn(parent, src, opts, false); },
     progress() { return jobs.length ? done / jobs.length : 1; },
@@ -664,7 +679,13 @@ function toonify(m, { keepMap = false, fallback = '#e8dbe8' } = {}) {
     transparent: m.transparent,
     opacity: m.opacity,
   });
-  if (keepMap && m.map) out.map = m.map;
+  if (keepMap && m.map) {
+    out.map = m.map;
+    // Textured assets are already lit by their own painted shading: no emissive lift, and a
+    // touch of headroom so toon lighting does not blow pale textures out to white.
+    out.emissive.set(0x000000);
+    out.color.multiplyScalar(0.78);
+  }
   if (m.alphaMap) out.alphaMap = m.alphaMap;
   if (m.alphaTest) out.alphaTest = m.alphaTest;
   return out;
