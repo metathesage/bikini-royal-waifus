@@ -1406,7 +1406,7 @@ function beginBus() {
 
     const speedMul = (player.buffs.speed || 0) > 0 ? 1.4 : 1;
     const slowItem = player.channel ? 0.4 : 1;
-    let speed = (player.knocked ? 1.8 : player.crouch ? 3.0 : input.sprint ? 8.2 : 5.0) * speedMul * slowItem;
+    let speed = (player.knocked ? 1.8 : player.crouch ? 3.0 : input.sprint ? 9.0 : 5.6) * speedMul * slowItem;
     if (world.slowAt(player.pos.x, player.pos.z) && !player.knocked) speed *= 0.72;
 
     if (input.crouchPressed && player.grounded && !player.knocked) {
@@ -1440,7 +1440,7 @@ function beginBus() {
 
     const wishX = fwd.x * input.moveY + right.x * input.moveX;
     const wishZ = fwd.z * input.moveY + right.z * input.moveX;
-    const accel = player.grounded ? 28 : 10;
+    const accel = player.grounded ? 40 : 12;
     if (player.slide > 0) {
       player.vel.x = player.slideDir.x * speed;
       player.vel.z = player.slideDir.z * speed;
@@ -1448,8 +1448,8 @@ function beginBus() {
       player.vel.x = lerp(player.vel.x, wishX * speed, 1 - Math.exp(-accel * dt));
       player.vel.z = lerp(player.vel.z, wishZ * speed, 1 - Math.exp(-accel * dt));
     } else if (player.grounded) {
-      player.vel.x *= Math.exp(-14 * dt);
-      player.vel.z *= Math.exp(-14 * dt);
+      player.vel.x *= Math.exp(-20 * dt);
+      player.vel.z *= Math.exp(-20 * dt);
     }
 
     player.pos.x += player.vel.x * dt;
@@ -1648,6 +1648,7 @@ function beginBus() {
     camera.getWorldPosition(origin);
     camera.getWorldDirection(_dir);
     const pellets = spec.pellets;
+    let shotDmg = 0;
     let any = false;
     let head = false;
     /**
@@ -1676,6 +1677,7 @@ function beginBus() {
         const dmg = falloffDamage(spec, hit.t) * (hit.head ? spec.head : 1);
         hurtBot(hit.bot, dmg, { name: look().name, byPlayer: true, head: hit.head });
         any = true;
+        shotDmg += dmg;
         head = head || hit.head;
         player.hits++;
         player.damage += dmg;
@@ -1738,6 +1740,8 @@ function beginBus() {
     }
     fx.muzzle(origin.clone().addScaledVector(_dir, 0.6));
     if (any) {
+      // Fortnite-style damage number at the point of impact, on every map.
+      if (!world.isGraybox && firstHit) fx.number(firstHit.end, String(Math.round(shotDmg)), head ? '#ffe566' : '#ffffff');
       emit({ type: 'hit', head });
       trauma = Math.min(1, trauma + 0.04);
       player.hitstop = 0.015;

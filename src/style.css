@@ -2065,3 +2065,30 @@ h2 { border-left: 0; padding-left: 0; letter-spacing: 0.12em; text-shadow: none;
 .screen-locker, .screen-viewer, .screen-armory, .screen-settings {
   background: linear-gradient(180deg, rgba(34, 16, 40, 0.9), rgba(34, 16, 40, 0.8));
 }
+
+/* === SPLASH + LOADING: key-art screens === */
+.screen-splash, .screen-loading {
+  background:
+    url('/assets/images/splash-art.jpg') left top / auto 100% no-repeat,
+    radial-gradient(ellipse at 75% 40%, #7a2f66 0%, #3a1440 60%, #1f0a26 100%);
+}
+.screen-splash::before, .screen-loading::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, transparent 26%, rgba(31, 10, 38, 1) 43%, rgba(31, 10, 38, 0.6) 100%);
+}
+.screen-splash { align-items: center; justify-content: flex-end; }
+.screen-splash .splash-copy { margin: 0 7vw 0 0; max-width: 30rem; align-items: flex-end; text-align: right; display: flex; flex-direction: column; }
+.screen-splash .wordmark { align-items: flex-end; }
+.screen-splash .stack, .screen-splash .plate.primary { margin-left: auto; }
+.screen-splash .tag { max-width: 24ch; }
+.screen-loading { align-items: center; justify-content: flex-end; }
+.load-card {
+  position: relative; z-index: 1; width: min(30rem, 86vw); margin: 0 7vw 0 0;
+  display: flex; flex-direction: column; gap: 0.9rem; text-align: right;
+}
+.load-card h2 { font-size: clamp(1.6rem, 3.4vw, 2.6rem); letter-spacing: 0.02em; justify-content: flex-end; }
+.heart-bar { height: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.16); overflow: hidden; border: 0; }
+.heart-bar span { display: block; height: 100%; width: 0; border-radius: 6px; background: linear-gradient(90deg, #ffc0da, #ff8fbf); box-shadow: 0 0 12px rgba(255, 143, 191, 0.7); transition: width 0.25s ease; }
+@media (max-width: 760px) {
+  .screen-splash::before, .screen-loading::before { background: rgba(31, 10, 38, 0.72); }
+}
