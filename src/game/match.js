@@ -96,7 +96,7 @@ export function createMatch({ getSettings, audio, getLook, renderer = null, map 
   let buildIndex = 0;
   const events = [];
   let abstractT = 2;
-  let dropT = 70;
+  let dropT = 40;
   let prevFire = false;
   let prevSlot = 0;
 
@@ -665,7 +665,7 @@ let ufoDepart = -1;
     player.bloom = 0;
     grenades = [];
     falling = [];
-    for (const s of supply) scene.remove(s.mesh);
+    for (const s of supply) { scene.remove(s.mesh); if (s.beam) scene.remove(s.beam); }
     supply = [];
     for (const p of pickups) {
       if (p.fromChest || p.fromDrop) {
@@ -694,7 +694,7 @@ let ufoDepart = -1;
     }
     zone.x = 6; zone.z = -4; zone.r = 62; zone.from = 62;
     zone.phase = 0; zone.mode = 'wait'; zone.left = ZONE_PLAN[0].wait; zone.dps = 0;
-    dropT = 75;
+    dropT = 40;
     abstractT = 2;
     // Restarting a range session means re-arming and standing the dummies back
     // up, not a new drop. placeLobby would put the player on a lobby deck at
@@ -942,7 +942,7 @@ function beginBus() {
     abstractT -= dt;
     if (abstractT <= 0) { abstractT = 2.4; abstractFight(); }
     dropT -= dt;
-    if (dropT <= 0) { dropT = 78; callSupply(); }
+    if (dropT <= 0) { dropT = 60; callSupply(); }
     checkEnd();
   }
 
@@ -1351,6 +1351,7 @@ function beginBus() {
       emit({ type: 'hit', head });
       trauma = Math.min(1, trauma + 0.04);
       player.hitstop = 0.015;
+      rumble(head ? 90 : 50, head ? 0.35 : 0.1, 0.4);
       audio.sfx(head ? 'head' : 'hit');
       if (settings.shake !== false) trauma = Math.min(1, trauma + 0.12);
     } else if (world.isGraybox) {
@@ -1719,6 +1720,7 @@ function beginBus() {
     if (info && info.byPlayer) {
       player.kills++;
       player.hitstop = 0.05;
+      rumble(220, 0.8, 0.6);
       trauma = Math.min(1, trauma + (getSettings().shake === false ? 0 : 0.45));
       audio.sfx('elim');
     }
@@ -1747,7 +1749,7 @@ function beginBus() {
     if (left > 0) {
       if (player.knocked) player.knockHp -= left;
       else player.hp -= left;
-      if (!info.quiet) audio.sfx('hurt');
+      if (!info.quiet) { audio.sfx('hurt'); rumble(140, 0.6, 0.3); }
     }
     if (!info.quiet) trauma = Math.min(1, trauma + (getSettings().shake === false ? 0 : 0.28));
 
@@ -2310,6 +2312,15 @@ function beginBus() {
     trauma = Math.min(1, trauma + 0.5);
   }
 
+  /** Controller rumble; silently does nothing without a pad or actuator. */
+  function rumble(duration, strong, weak) {
+    try {
+      const gp = [...(navigator.getGamepads ? navigator.getGamepads() : [])].find(Boolean);
+      const act = gp && gp.vibrationActuator;
+      if (act && act.playEffect) act.playEffect('dual-rumble', { duration, strongMagnitude: strong, weakMagnitude: weak }).catch(() => {});
+    } catch { /* no pad, no rumble */ }
+  }
+
   function callSupply() {
     const spot = world.anchors.drops[Math.floor(Math.random() * world.anchors.drops.length)];
     const mesh = new THREE.Mesh(
@@ -2325,7 +2336,13 @@ function beginBus() {
       shell.traverse((o) => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
       mesh.add(shell);
     }).catch((e) => console.error('supply crate failed', e));
-    supply.push({ x: spot.x, y: 75, z: spot.z, mesh, landed: false, opened: false });
+    const beam = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.6, 0.6, 90, 10, 1, true),
+      new THREE.MeshBasicMaterial({ color: 0xffd35a, transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
+    );
+    beam.position.set(spot.x, heightAt(spot.x, spot.z) + 45, spot.z);
+    scene.add(beam);
+    supply.push({ x: spot.x, y: 75, z: spot.z, mesh, beam, landed: false, opened: false });
     emit({ type: 'toast', text: 'Supply drop inbound' });
   }
 
@@ -2338,12 +2355,15 @@ function beginBus() {
         s.mesh.position.y = s.y;
         s.mesh.rotation.y += dt;
       }
+      if (s.beam && !s.opened) s.beam.material.opacity = 0.28 + Math.sin(performance.now() * 0.004) * 0.1;
     }
   }
 
   function openSupply(s) {
     if (s.opened) return;
     s.opened = true;
+    if (s.beam) { scene.remove(s.beam); s.beam.geometry.dispose(); s.beam.material.dispose(); s.beam = null; }
+    rumble(180, 0.3, 0.5);
     s.mesh.material.color.set(0x7dfff0);
     addMarked('gun', Math.random() < 0.5 ? 'snip' : 'ar', s.x + 0.4, s.y, s.z);
     addMarked('item', 'aegis', s.x - 0.4, s.y, s.z);
